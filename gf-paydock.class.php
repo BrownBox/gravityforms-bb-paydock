@@ -341,7 +341,7 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
         protected function authorize($feed, $submission_data, $form, $entry) {
             $data = array();
 
-            $payment_type = $entry[$feed["meta"]["pd_payment_type"]];
+            $payment_type = $feed["meta"]["pd_payment_type"];
             if ($payment_type == "bsb") {
                 $data["customer"]["payment_source"]["type"] = "bsb";
                 $data["customer"]["payment_source"]["account_name"] = $entry[$feed["meta"]["pd_payment_mapped_details_pd_account_name"]];
