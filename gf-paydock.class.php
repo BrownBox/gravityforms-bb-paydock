@@ -254,12 +254,12 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                         $check_total_exist = 1; //total exists.
                     $field_settings = array();
                     $field_settings['value'] = $field['id'];
-                    $field_settings['label'] = __($field['label'], 'gravityformsenvoyrecharge');
+                    $field_settings['label'] = __($field['label'], 'gravityforms-bb-paydock');
                     array_push($default_settings, $field_settings);
                 } elseif ($field['type'] == 'envoyrecharge') {
                     $field_settings = array();
                     $field_settings['value'] = $field['id'].'.1';
-                    $field_settings['label'] = __($field['label'].' [Amount]', 'gravityformsenvoyrecharge');
+                    $field_settings['label'] = __($field['label'].' [Amount]', 'gravityforms-bb-paydock');
                     array_push($default_settings, $field_settings);
                 }
             }
@@ -268,7 +268,7 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
             if ($check_total_exist == 0) {
                 $field_settings = array();
                 $field_settings['value'] = 'total';
-                $field_settings['label'] = __('Total', 'gravityformsenvoyrecharge');
+                $field_settings['label'] = __('Total', 'gravityforms-bb-paydock');
                 array_push($default_settings, $field_settings);
             }
             return $default_settings;
