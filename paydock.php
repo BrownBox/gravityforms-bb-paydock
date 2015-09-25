@@ -58,3 +58,9 @@ function migrate_ech_settings() {
         update_option('gravityformsaddon_PayDock_settings', $paydock_options);
     }
 }
+
+// Enable the Gravity Forms credit card field
+add_action("gform_enable_credit_card_field", "gf_paydock_enable_creditcard");
+function bb_cart_enable_creditcard($is_enabled){
+    return true;
+}
