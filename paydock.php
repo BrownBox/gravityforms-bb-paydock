@@ -3,7 +3,7 @@
 Plugin Name: Gravity Forms Brown Box PayDock Add-On
 Plugin URI: http://brownbox.net.au/
 Description: Integrates Gravity Forms with <a href="http://thepaydock.com/">PayDock</a>, enabling end users to purchase goods and services through Gravity Forms.
-Version: 2.0.1
+Version: 2.0.2
 Author: Brown Box
 Author URI: http://brownbox.net.au/
 Text Domain: gravityforms-bb-paydock
@@ -61,6 +61,6 @@ function migrate_ech_settings() {
 
 // Enable the Gravity Forms credit card field
 add_action("gform_enable_credit_card_field", "gf_paydock_enable_creditcard");
-function bb_cart_enable_creditcard($is_enabled){
+function gf_paydock_enable_creditcard($is_enabled){
     return true;
 }

@@ -304,7 +304,7 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
             );
         }
 
-        protected function get_submission_data($feed, $form, $entry) {
+        public function get_submission_data($feed, $form, $entry) {
     		$form_data = array();
 
     		$form_data['form_title'] = $form['title'];
