@@ -380,6 +380,7 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
             }
 
             $feed_gateway_key = $feed['meta']['pd_select_gateway'];
+            $_SESSION['PD_GATEWAY'] = $feed_gateway_key;
 
             $transactions = array();
             $interval = $entry[$feed["meta"]["pd_payment_type_mapped_details_pd_payment_interval"]];
@@ -530,7 +531,7 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                 } else {
                     $GLOBALS['transaction_id'] = $response->resource->data->_id;
 
-                    add_action("gform_after_submission", array($this, "paydock_post_purchase_actions"), 10, 2);
+                    add_action("gform_after_submission", array($this, "paydock_post_purchase_actions"), 99, 2);
 
                     $auth = array(
                             'is_authorized' => true,
@@ -608,6 +609,8 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
             GFAPI::update_entry_property($entry['id'], 'payment_amount', $amount);
             GFAPI::update_entry_property($entry['id'], 'payment_status', 'Approved');
             GFAPI::update_entry_property($entry['id'], 'transaction_id', $GLOBALS['transaction_id']);
+
+            unset($_SESSION['PD_GATEWAY']);
         }
     }
 
