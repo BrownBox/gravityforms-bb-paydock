@@ -15,6 +15,16 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
         private $sandbox_endpoint = 'https://api-sandbox.paydock.com/v1/';
         private $production_endpoint = 'https://api.paydock.com/v1/';
 
+        private static $_instance = null;
+
+        public static function get_instance() {
+            if ( self::$_instance == null ) {
+                self::$_instance = new self;
+            }
+
+            return self::$_instance;
+        }
+
         public function init() {
             parent::init();
             add_filter("gform_field_value_feed_reference", array($this, "generate_random_number"));
@@ -613,6 +623,4 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
             unset($_SESSION['PD_GATEWAY']);
         }
     }
-
-    new GFPayDock();
 }
