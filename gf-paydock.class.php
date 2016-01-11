@@ -130,6 +130,12 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                                             "choices" => $this->productFields(),
                                     ),
                                     array(
+                                            "name" => "pd_currency",
+                                            "type" => "select",
+                                            "label" => "Currency",
+                                            "choices" => $this->currencyOptions(),
+                                    ),
+                                    array(
                                             "name" => "pd_payment_type",
                                             "type" => "select",
                                             "label" => "Payment Type",
@@ -284,6 +290,29 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
             return $default_settings;
         }
 
+        /**
+         * List of options for Currency setting
+         * @return array
+         */
+        protected function currencyOptions() {
+            $form = $this->get_current_form();
+            $fields = $form['fields'];
+            $default_settings = array();
+
+            array_push($default_settings, array(
+                    "value" => "",
+                    "label" => "Default (from GF Settings)",
+            ));
+
+            foreach ($fields as $key => $field) {
+                $field_settings = array();
+                $field_settings['value'] = $field['id'];
+                $field_settings['label'] = __($field['label'], 'gravityforms-bb-paydock');
+                array_push($default_settings, $field_settings);
+            }
+            return $default_settings;
+        }
+
         public function plugin_settings_fields() {
             return array(
                     array(
@@ -310,7 +339,7 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
 
         protected function feed_list_columns() {
             return array(
-                'feedName' => __('Name', 'paydockfeedaddon'),
+                'feedName' => __('Name', 'gravityforms-bb-paydock'),
             );
         }
 
@@ -377,7 +406,7 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
             $data["customer"]["last_name"] = $entry[$feed["meta"]["pd_personal_mapped_details_pd_last_name"]];
             $data["customer"]["email"] = $entry[$feed["meta"]["pd_personal_mapped_details_pd_email"]];
             $data["reference"] = $entry[$feed["meta"]["pd_payment_mapped_details_pd_transaction_reference"]];
-            $data["currency"] = (!empty($currency)) ? $currency : GFCommon::get_currency();
+            $data["currency"] = (!empty($entry[$feed["meta"]["pd_currency"]])) ? $entry[$feed["meta"]["pd_currency"]] : GFCommon::get_currency();
 
             $pd_options = $this->get_plugin_settings();
 
@@ -621,6 +650,30 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
             GFAPI::update_entry_property($entry['id'], 'transaction_id', $GLOBALS['transaction_id']);
 
             unset($_SESSION['PD_GATEWAY']);
+        }
+
+        public function get_subscription($sub_id, $production = false) {
+            $pd_options = $this->get_plugin_settings();
+            if ($production) {
+                $request_token = $pd_options['pd_production_api_key'];
+                $feed_uri = $this->production_endpoint;
+            } else {
+                $request_token = $pd_options['pd_sandbox_api_key'];
+                $feed_uri = $this->sandbox_endpoint;
+            }
+
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $feed_uri.'subscriptions/'.$sub_id);
+            curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "GET");
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+                    'x-user-token:' . $request_token,
+                    'Content-Type: application/json',
+            ));
+            $result = curl_exec($ch);
+            curl_close($ch);
+
+            return json_decode($result);
         }
     }
 }
