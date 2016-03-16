@@ -266,8 +266,9 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
 
             foreach ($fields as $key => $field) {
                 if ($field['type'] == 'product' || $field['type'] == 'total') {
-                    if ($field['type'] == 'total')
+                    if ($field['type'] == 'total') {
                         $check_total_exist = 1; //total exists.
+                    }
                     $field_settings = array();
                     $field_settings['value'] = $field['id'];
                     $field_settings['label'] = __($field['label'], 'gravityforms-bb-paydock');
@@ -276,6 +277,11 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                     $field_settings = array();
                     $field_settings['value'] = $field['id'].'.1';
                     $field_settings['label'] = __($field['label'].' [Amount]', 'gravityforms-bb-paydock');
+                    array_push($default_settings, $field_settings);
+                } elseif ($field['type'] == 'bb_click_array') {
+                    $field_settings = array();
+                    $field_settings['value'] = $field['id'].'.1';
+                    $field_settings['label'] = __($field['label'], 'gravityforms-bb-paydock');
                     array_push($default_settings, $field_settings);
                 }
             }
@@ -480,6 +486,10 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                         if (!isset($transactions[$ech_interval]))
                             $transactions[$ech_interval] = 0;
                         $transactions[$ech_interval] += $this->clean_amount($entry[$field['id'].'.1'])/100;
+                    } elseif ($field['type'] == 'bb_click_array') {
+                        if (!isset($transactions[$interval]))
+                            $transactions[$interval] = 0;
+                        $transactions[$interval] += $this->clean_amount($entry[$field['id'].'.1'])/100;
                     }
                 }
             } else {
