@@ -171,6 +171,41 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                                                             "label" => "Last Name",
                                                             "required" => false,
                                                     ),
+                                                    array(
+                                                            "name" => "pd_phone",
+                                                            "label" => "Phone",
+                                                            "required" => false,
+                                                    ),
+                                                    array(
+                                                            "name" => "pd_address_line1",
+                                                            "label" => "Address Line 1",
+                                                            "required" => false,
+                                                    ),
+                                                    array(
+                                                            "name" => "pd_address_line2",
+                                                            "label" => "Address Line 2",
+                                                            "required" => false,
+                                                    ),
+                                                    array(
+                                                            "name" => "pd_address_city",
+                                                            "label" => "City",
+                                                            "required" => false,
+                                                    ),
+                                                    array(
+                                                            "name" => "pd_address_state",
+                                                            "label" => "State",
+                                                            "required" => false,
+                                                    ),
+                                                    array(
+                                                            "name" => "pd_address_postcode",
+                                                            "label" => "Postcode",
+                                                            "required" => false,
+                                                    ),
+                                                    array(
+                                                            "name" => "pd_address_country",
+                                                            "label" => "Country",
+                                                            "required" => false,
+                                                    ),
                                             ),
                                     ),
                                     array(
@@ -181,6 +216,11 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                                                     array(
                                                             "name" => "pd_transaction_reference",
                                                             "label" => "Transaction Reference",
+                                                            "required" => false,
+                                                    ),
+                                                    array(
+                                                            "name" => "pd_description",
+                                                            "label" => "Description",
                                                             "required" => false,
                                                     ),
                                                     array(
@@ -407,11 +447,30 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                 $data["customer"]["payment_source"]["card_ccv"] = $submission_data['card_security_code'];
             }
 
+            $phone = '';
+            if (!empty($entry[$feed["meta"]["pd_personal_mapped_details_pd_phone"]])) {
+                $phone = $entry[$feed["meta"]["pd_personal_mapped_details_pd_phone"]];
+                if (strpos($phone, '0') === 0) {
+                    $phone = substr($phone, 1);
+                }
+                if (strpos($phone, '+') === false) {
+                    $phone = '+61'.$phone;
+                }
+            }
+
             $data["customer"]["payment_source"]["gateway_id"] = $feed["meta"]["pd_select_gateway"];
             $data["customer"]["first_name"] = $entry[$feed["meta"]["pd_personal_mapped_details_pd_first_name"]];
             $data["customer"]["last_name"] = $entry[$feed["meta"]["pd_personal_mapped_details_pd_last_name"]];
             $data["customer"]["email"] = $entry[$feed["meta"]["pd_personal_mapped_details_pd_email"]];
+            $data["customer"]["phone"] = $phone;
+            $data["customer"]["payment_source"]["address_line1"] = $entry[$feed["meta"]["pd_personal_mapped_details_pd_address_line1"]];
+            $data["customer"]["payment_source"]["address_line2"] = $entry[$feed["meta"]["pd_personal_mapped_details_pd_address_line2"]];
+            $data["customer"]["payment_source"]["address_city"] = $entry[$feed["meta"]["pd_personal_mapped_details_pd_address_city"]];
+            $data["customer"]["payment_source"]["address_state"] = $entry[$feed["meta"]["pd_personal_mapped_details_pd_address_state"]];
+            $data["customer"]["payment_source"]["address_postcode"] = $entry[$feed["meta"]["pd_personal_mapped_details_pd_address_postcode"]];
+            $data["customer"]["payment_source"]["address_country"] = $entry[$feed["meta"]["pd_personal_mapped_details_pd_address_country"]];
             $data["reference"] = $entry[$feed["meta"]["pd_payment_mapped_details_pd_transaction_reference"]];
+            $data["description"] = $entry[$feed["meta"]["pd_payment_mapped_details_pd_description"]];
             $data["currency"] = (!empty($entry[$feed["meta"]["pd_currency"]])) ? $entry[$feed["meta"]["pd_currency"]] : GFCommon::get_currency();
 
             $pd_options = $this->get_plugin_settings();
