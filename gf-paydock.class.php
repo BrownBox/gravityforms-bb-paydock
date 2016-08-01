@@ -390,7 +390,7 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
             if ($payment_type == "bsb") {
                 $data["customer"]["payment_source"]["type"] = "bsb";
                 $data["customer"]["payment_source"]["account_name"] = $entry[$feed["meta"]["pd_payment_mapped_details_pd_account_name"]];
-                $data["customer"]["payment_source"]["account_bsb"] = $entry[$feed["meta"]["pd_payment_mapped_details_pd_account_bsb"]];
+                $data["customer"]["payment_source"]["account_bsb"] = str_replace('-', '', $entry[$feed["meta"]["pd_payment_mapped_details_pd_account_bsb"]]);
                 $data["customer"]["payment_source"]["account_number"] = $entry[$feed["meta"]["pd_payment_mapped_details_pd_account_number"]];
             } else {
                 $data["customer"]["payment_source"]["card_name"] = $submission_data['card_name'];
