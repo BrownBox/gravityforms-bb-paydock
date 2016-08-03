@@ -36,7 +36,7 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
 <a href="http://thepaydock.com" target="_blank"><img src="<?php echo plugin_dir_url(__FILE__).'/img/paydock_small.png' ?>"></a>
 <p>PayDock is a revolutionary way to integrate recurring and one-off payments into your website, regardless of gateway and free from hassle.</p>
 <p>PayDock settings are managed on a per-form basis.</p>
-<p><a href="http://docs.thepaydock.com" />Click here</a> for API documentation or <a href="mailto:support@thepaydock.com">email PayDock for support</a>.</p>
+<p><a href="http://docs.thepaydock.com">Click here</a> for API documentation or <a href="mailto:support@thepaydock.com">email PayDock for support</a>.</p>
 <?php
         }
 
@@ -533,8 +533,9 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                         	    $amount = $this->clean_amount($entry[$field['id']])/100;
                         	    break;
                         }
-                        if (!isset($transactions[$interval]))
+                        if (!isset($transactions[$interval])) {
                             $transactions[$interval] = 0;
+                        }
                         $transactions[$interval] += $amount;
                     } elseif ($field['type'] == 'envoyrecharge') {
                         if (rgpost('input_' . $field['id'].'_5') == 'recurring') {
@@ -542,12 +543,14 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                         } else {
                             $ech_interval = $interval;
                         }
-                        if (!isset($transactions[$ech_interval]))
+                        if (!isset($transactions[$ech_interval])) {
                             $transactions[$ech_interval] = 0;
+                        }
                         $transactions[$ech_interval] += $this->clean_amount($entry[$field['id'].'.1'])/100;
                     } elseif ($field['type'] == 'bb_click_array') {
-                        if (!isset($transactions[$interval]))
+                        if (!isset($transactions[$interval])) {
                             $transactions[$interval] = 0;
+                        }
                         $transactions[$interval] += $this->clean_amount($entry[$field['id'].'.1'])/100;
                     }
                 }
@@ -766,6 +769,238 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
             curl_close($ch);
 
             return json_decode($result);
+        }
+
+        public function get_subscriptions_by_customer($customer_id, $production = false) {
+            $pd_options = $this->get_plugin_settings();
+            if ($production) {
+                $request_token = $pd_options['pd_production_api_key'];
+                $feed_uri = $this->production_endpoint;
+            } else {
+                $request_token = $pd_options['pd_sandbox_api_key'];
+                $feed_uri = $this->sandbox_endpoint;
+            }
+
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $feed_uri.'subscriptions/?customer_id='.$customer_id);
+            curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "GET");
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+                    'x-user-token:' . $request_token,
+                    'Content-Type: application/json',
+            ));
+            $result = curl_exec($ch);
+            curl_close($ch);
+
+            return json_decode($result);
+        }
+
+        public function get_subscriptions_by_email($email, $production = false) {
+            $pd_options = $this->get_plugin_settings();
+            if ($production) {
+                $request_token = $pd_options['pd_production_api_key'];
+                $feed_uri = $this->production_endpoint;
+            } else {
+                $request_token = $pd_options['pd_sandbox_api_key'];
+                $feed_uri = $this->sandbox_endpoint;
+            }
+
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $feed_uri.'subscriptions/?status=active&search='.$email);
+            curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "GET");
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+                    'x-user-token:' . $request_token,
+                    'Content-Type: application/json',
+            ));
+            $result = curl_exec($ch);
+            curl_close($ch);
+
+            return json_decode($result);
+        }
+
+        public function update_subscription($sub_id, array $data, $production = false) {
+            $data_string = json_encode($data);
+            $pd_options = $this->get_plugin_settings();
+            if ($production) {
+                $request_token = $pd_options['pd_production_api_key'];
+                $feed_uri = $this->production_endpoint;
+            } else {
+                $request_token = $pd_options['pd_sandbox_api_key'];
+                $feed_uri = $this->sandbox_endpoint;
+            }
+
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $feed_uri.'subscriptions/'.$sub_id);
+            curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $data_string);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+                    'x-user-token:' . $request_token,
+                    'Content-Type: application/json',
+                    'Content-Length: ' . strlen($data_string)
+            ));
+            $result = curl_exec($ch);
+            curl_close($ch);
+
+            return json_decode($result);
+        }
+
+        public function delete_subscription($sub_id, $production = false) {
+            $pd_options = $this->get_plugin_settings();
+            if ($production) {
+                $request_token = $pd_options['pd_production_api_key'];
+                $feed_uri = $this->production_endpoint;
+            } else {
+                $request_token = $pd_options['pd_sandbox_api_key'];
+                $feed_uri = $this->sandbox_endpoint;
+            }
+
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $feed_uri.'subscriptions/'.$sub_id);
+            curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "DELETE");
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+                    'x-user-token:' . $request_token,
+                    'Content-Type: application/json',
+            ));
+            $result = curl_exec($ch);
+            curl_close($ch);
+
+            return json_decode($result);
+        }
+
+        public function get_charge($charge_id, $production = false) {
+            $pd_options = $this->get_plugin_settings();
+            if ($production) {
+                $request_token = $pd_options['pd_production_api_key'];
+                $feed_uri = $this->production_endpoint;
+            } else {
+                $request_token = $pd_options['pd_sandbox_api_key'];
+                $feed_uri = $this->sandbox_endpoint;
+            }
+
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $feed_uri.'charges/'.$charge_id);
+            curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "GET");
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+                    'x-user-token:' . $request_token,
+                    'Content-Type: application/json',
+            ));
+            $result = curl_exec($ch);
+            curl_close($ch);
+
+            return json_decode($result);
+        }
+
+        public function get_charges_by_email($email, $production = false) {
+            $pd_options = $this->get_plugin_settings();
+            if ($production) {
+                $request_token = $pd_options['pd_production_api_key'];
+                $feed_uri = $this->production_endpoint;
+            } else {
+                $request_token = $pd_options['pd_sandbox_api_key'];
+                $feed_uri = $this->sandbox_endpoint;
+            }
+
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $feed_uri.'charges/?search='.$email);
+            curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "GET");
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+                    'x-user-token:' . $request_token,
+                    'Content-Type: application/json',
+            ));
+            $result = curl_exec($ch);
+            curl_close($ch);
+
+            return json_decode($result);
+        }
+
+        public function get_customers($production = false) {
+            $pd_options = $this->get_plugin_settings();
+            if ($production) {
+                $request_token = $pd_options['pd_production_api_key'];
+                $feed_uri = $this->production_endpoint;
+            } else {
+                $request_token = $pd_options['pd_sandbox_api_key'];
+                $feed_uri = $this->sandbox_endpoint;
+            }
+
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $feed_uri.'customers');
+            curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "GET");
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+                    'x-user-token:' . $request_token,
+                    'Content-Type: application/json',
+            ));
+            $result = curl_exec($ch);
+            curl_close($ch);
+
+            return json_decode($result);
+        }
+
+        public function get_customer($customer_id, $production = false) {
+            $pd_options = $this->get_plugin_settings();
+            if ($production) {
+                $request_token = $pd_options['pd_production_api_key'];
+                $feed_uri = $this->production_endpoint;
+            } else {
+                $request_token = $pd_options['pd_sandbox_api_key'];
+                $feed_uri = $this->sandbox_endpoint;
+            }
+
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $feed_uri.'customers/'.$customer_id);
+            curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "GET");
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+                    'x-user-token:' . $request_token,
+                    'Content-Type: application/json',
+            ));
+            $result = curl_exec($ch);
+            curl_close($ch);
+
+            return json_decode($result);
+        }
+
+        public function update_customer($customer_id, array $data, $production = false) {
+            $data_string = json_encode($data);
+            $pd_options = $this->get_plugin_settings();
+            if ($production) {
+                $request_token = $pd_options['pd_production_api_key'];
+                $feed_uri = $this->production_endpoint;
+            } else {
+                $request_token = $pd_options['pd_sandbox_api_key'];
+                $feed_uri = $this->sandbox_endpoint;
+            }
+
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $feed_uri.'customers/'.$customer_id);
+            curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $data_string);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+                    'x-user-token:' . $request_token,
+                    'Content-Type: application/json',
+                    'Content-Length: ' . strlen($data_string)
+            ));
+            $result = curl_exec($ch);
+            curl_close($ch);
+
+            return json_decode($result);
+        }
+
+        public function charge_belongs_to_email($charge_id, $email, $production) {
+            $charge = $this->get_charge($charge_id, $production);
+            return $charge->resource->data->customer->email == $email;
+        }
+
+        public function subscription_belongs_to_email($sub_id, $email, $production) {
+            $subscription = $this->get_subscription($sub_id, $production);
+            return $subscription->resource->data->customer->email == $email;
         }
     }
 }
