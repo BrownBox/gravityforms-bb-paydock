@@ -383,7 +383,7 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
             );
         }
 
-        protected function feed_list_columns() {
+        public function feed_list_columns() {
             return array(
                 'feedName' => __('Name', 'gravityforms-bb-paydock'),
             );
@@ -423,7 +423,7 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
     		return $form_data;
         }
 
-        protected function authorize($feed, $submission_data, $form, $entry) {
+        public function authorize($feed, $submission_data, $form, $entry) {
             $data = array();
 
             $payment_type = $feed["meta"]["pd_payment_type"];
