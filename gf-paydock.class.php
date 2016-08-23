@@ -516,9 +516,11 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                     }
                     if (!empty($cart_items)) { // BB Cart
                         foreach ($cart_items as $cart_item) {
-                            if (!isset($transactions[$cart_item['frequency']]))
+                            if (!isset($transactions[$cart_item['frequency']])) {
                                 $transactions[$cart_item['frequency']] = 0;
-                            $transactions[$cart_item['frequency']] += $cart_item['price']/100;
+                            }
+                            $quantity = !empty($cart_item['quantity']) ? $cart_item['quantity'] : 1;
+                            $transactions[$cart_item['frequency']] += $quantity*$cart_item['price']/100;
                         }
                     }
                 }
