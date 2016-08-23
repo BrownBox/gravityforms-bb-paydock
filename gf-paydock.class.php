@@ -447,6 +447,9 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                 $data["customer"]["payment_source"]["card_ccv"] = $submission_data['card_security_code'];
             }
 
+            $first_name = $entry[$feed["meta"]["pd_personal_mapped_details_pd_first_name"]];
+            $last_name = $entry[$feed["meta"]["pd_personal_mapped_details_pd_last_name"]];
+            $email = $entry[$feed["meta"]["pd_personal_mapped_details_pd_email"]];
             $phone = '';
             if (!empty($entry[$feed["meta"]["pd_personal_mapped_details_pd_phone"]])) {
                 $phone = $entry[$feed["meta"]["pd_personal_mapped_details_pd_phone"]];
@@ -459,9 +462,9 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
             }
 
             $data["customer"]["payment_source"]["gateway_id"] = $feed["meta"]["pd_select_gateway"];
-            $data["customer"]["first_name"] = $entry[$feed["meta"]["pd_personal_mapped_details_pd_first_name"]];
-            $data["customer"]["last_name"] = $entry[$feed["meta"]["pd_personal_mapped_details_pd_last_name"]];
-            $data["customer"]["email"] = $entry[$feed["meta"]["pd_personal_mapped_details_pd_email"]];
+            $data["customer"]["first_name"] = $first_name;
+            $data["customer"]["last_name"] = $last_name;
+            $data["customer"]["email"] = $email;
             $data["customer"]["phone"] = $phone;
             $data["customer"]["payment_source"]["address_line1"] = $entry[$feed["meta"]["pd_personal_mapped_details_pd_address_line1"]];
             $data["customer"]["payment_source"]["address_line2"] = $entry[$feed["meta"]["pd_personal_mapped_details_pd_address_line2"]];
@@ -485,6 +488,8 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
 
             $feed_gateway_key = $feed['meta']['pd_select_gateway'];
             $_SESSION['PD_GATEWAY'] = $feed_gateway_key;
+
+            $start_date = $entry[$feed["meta"]["pd_payment_type_mapped_details_pd_payment_start_date"]];
 
             $transactions = array();
             $interval = $entry[$feed["meta"]["pd_payment_type_mapped_details_pd_payment_interval"]];
@@ -560,7 +565,8 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                 $transactions[$interval] = $this->clean_amount($entry[$amount_field])/100;
             }
 
-            if (empty($transactions)) {
+            $total_amount = array_sum($transactions);
+            if ($total_amount <= 0) {
                 $error_message = 'No amounts found to process';
                 $auth = array(
                         'is_authorized' => false,
@@ -571,42 +577,109 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                 $GLOBALS['pd_error'] = $error_message;
 
                 add_filter('gform_validation_message', array($this, 'change_message'), 10, 2);
+                return $auth;
+            } else {
+                if (!empty($start_date) || strtotime($start_date > time())) { // If start date in future, we don't want to process recurring transactions now
+                    $total_amount = $transactions['one-off'];
+                }
+                if ($total_amount > 0) {
+                    // Process total amount as a one-off
+                    $api_url = $feed_uri . 'charges/';
+                    $data['amount'] = $total_amount;
+
+                    $data_string = json_encode($data);
+
+                    $ch = curl_init();
+                    curl_setopt($ch, CURLOPT_URL, $api_url);
+                    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
+                    curl_setopt($ch, CURLOPT_POSTFIELDS, $data_string);
+                    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                    curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+                            'x-user-token:' . $request_token,
+                            'Content-Type: application/json',
+                            'Content-Length: ' . strlen($data_string)
+                    ));
+                    $result = curl_exec($ch);
+                    curl_close($ch);
+
+                    $response = json_decode($result);
+
+                    $GLOBALS['transaction_id'] = $GLOBALS['pd_error'] = "";
+
+                    if (!is_object($response) || $response->status > 201 || $response->_code > 250) {
+                        if ($response == null || $response == '') {
+                            $error_message = __('An unknown error occured. No response was received from the gateway. This is probably a temporary connection issue - please try again.', 'gravityforms-bb-paydock');
+                        } else {
+                            if (is_string($response)) {
+                                $error_message = __($response, 'gravityforms-bb-paydock');
+                            } elseif (!empty($response->error->message)) {
+                                $error_message = __($response->error->message, 'gravityforms-bb-paydock');
+                            } elseif (property_exists($response->error, 'details')) {
+                                if (!is_object($response->error->details[0])) {
+                                    $error_message = __($response->error->details[0], 'gravityforms-bb-paydock');
+                                }
+                            } else {
+                                $error_message = __('An unknown error occured. Please try again.', 'gravityforms-bb-paydock');
+                            }
+                        }
+                        $GLOBALS['pd_error'] = $error_message;
+
+                        add_filter('gform_validation_message', array($this, 'change_message'), 10, 2);
+
+                        // set the form validation to false
+                        $auth = array(
+                                'is_authorized' => false,
+                                'transaction_id' => $response->resource->data->_id,
+                                'error_message' => $error_message,
+                        );
+
+                        foreach ($form['fields'] as &$field) {
+                            if ($field->cssClass == 'pd-show-error') {
+                                $field->failed_validation = true;
+                                $field->validation_message = 'There was a problem processing your payment. Please try again or contact us.';
+                                break;
+                            }
+                        }
+                        return $auth;
+                    } else {
+                        $GLOBALS['transaction_id'] = $response->resource->data->_id;
+
+                        add_action("gform_after_submission", array($this, "paydock_post_purchase_actions"), 99, 2);
+
+                        $auth = array(
+                                'is_authorized' => true,
+                                'transaction_id' => $response->resource->data->_id,
+                                'amount' => $amount,
+                        );
+                    }
+                }
             }
 
+            // Now we can set up subscriptions for any recurring transactions
             foreach ($transactions as $interval => $amount) {
-                if ($amount <= 0) {
-                    $error_message = 'Amount must be greater than zero';
-                    $auth = array(
-                            'is_authorized' => false,
-                            'transaction_id' => null,
-                            'error_message' => $error_message,
-                    );
-
-                    $GLOBALS['pd_error'] = $error_message;
-
-                    add_filter('gform_validation_message', array($this, 'change_message'), 10, 2);
+                if ($interval == 'one-off' || $amount <= 0) {
                     continue;
                 }
                 $data['amount'] = $amount;
-                // Check if it's a subscription or not
-                if ($interval != 'one-off') {
-                    // Set the right API endpoint
-                    $api_url = $feed_uri . 'subscriptions/';
-                    // Set add the schedule item
-                    $data["schedule"]["frequency"] = $entry[$feed["meta"]["pd_payment_type_mapped_details_pd_payment_frequency"]];
-                    $data["schedule"]["interval"] = $interval;
 
-                    $start_date = $entry[$feed["meta"]["pd_payment_type_mapped_details_pd_payment_start_date"]];
-                    if ($start_date != "") {
-                        $data["schedule"]["start_date"] = $start_date;
-                    }
+                // Set the right API endpoint
+                $api_url = $feed_uri . 'subscriptions/';
+                // Set add the schedule item
+                $frequency = $entry[$feed["meta"]["pd_payment_type_mapped_details_pd_payment_frequency"]];
+                if (empty($frequency)) {
+                    $frequency = 1;
+                }
+                $data["schedule"]["frequency"] = $frequency;
+                $data["schedule"]["interval"] = $interval;
 
-                    $end_date = $entry[$feed["meta"]["pd_payment_type_mapped_details_pd_payment_end_date"]];
-                    if ($end_date != "") {
-                        $data["schedule"]["end_date"] = $end_date;
-                    }
-                } else {
-                    $api_url = $feed_uri . 'charges/';
+                if (empty($start_date)) {
+                    $start_date = date('Y-m-d', strtotime('+'.$frequency.' '.$interval));
+                }
+                $data["schedule"]["start_date"] = $start_date;
+
+                $end_date = $entry[$feed["meta"]["pd_payment_type_mapped_details_pd_payment_end_date"]];
+                if ($end_date != "") {
+                    $data["schedule"]["end_date"] = $end_date;
                 }
 
                 $data_string = json_encode($data);
@@ -644,38 +717,22 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                             $error_message = __('An unknown error occured. Please try again.', 'gravityforms-bb-paydock');
                         }
                     }
-                    $GLOBALS['pd_error'] = $error_message;
-
-                    add_filter('gform_validation_message', array($this, 'change_message'), 10, 2);
-
-                    // set the form validation to false
-                    $auth = array(
-                            'is_authorized' => false,
-                            'transaction_id' => $response->resource->data->_id,
-                            'error_message' => $error_message,
-                    );
-
-                    foreach ($form['fields'] as &$field) {
-                        if ($field->cssClass == 'pd-show-error') {
-                            $field->failed_validation = true;
-                            $field->validation_message = 'There was a problem processing your payment. Please try again or contact us.';
-                            break;
-                        }
-                    }
-                    break;
-                } else {
-                    $GLOBALS['transaction_id'] = $response->resource->data->_id;
-
-                    add_action("gform_after_submission", array($this, "paydock_post_purchase_actions"), 99, 2);
-
-                    $auth = array(
-                            'is_authorized' => true,
-                            'transaction_id' => $response->resource->data->_id,
-                            'amount' => $amount,
-                    );
+                    $this->send_subscription_failed_email($first_name, $email, $amount, $interval, $frequency, $error_message);
                 }
             }
             return $auth;
+        }
+
+        private function send_subscription_failed_email($first_name, $email, $amount, $interval, $frequency, $error_message) {
+            $from_name = get_bloginfo('name');
+            $message = <<<EOM
+<p>Dear $first_name,</p>
+<p>While we were able to successfully process your initial transaction, an error occured while setting up the recurring payment of $$amount every $frequency $interval. Please contact us to resolve this.</p>
+<p>Error details: $error_message</p>
+<p>Sincerely,<br>
+<p>$from_name</p>
+EOM;
+            wp_mail($email, 'Recurring Payment Failure', $message);
         }
 
         // @todo make this work
