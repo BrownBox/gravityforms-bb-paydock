@@ -669,11 +669,18 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
 
                 // Set the right API endpoint
                 $api_url = $feed_uri . 'subscriptions/';
-                // Set add the schedule item
+
                 $frequency = $entry[$feed["meta"]["pd_payment_type_mapped_details_pd_payment_frequency"]];
                 if (empty($frequency)) {
                     $frequency = 1;
                 }
+
+                // Hack to support fortnightly recurrence
+                if ($interval == 'fortnight') {
+                    $interval = 'week';
+                    $frequency = 2;
+                }
+
                 $data["schedule"]["frequency"] = $frequency;
                 $data["schedule"]["interval"] = $interval;
 
