@@ -452,7 +452,7 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
             $email = $entry[$feed["meta"]["pd_personal_mapped_details_pd_email"]];
             $phone = '';
             if (!empty($entry[$feed["meta"]["pd_personal_mapped_details_pd_phone"]])) {
-                $phone = $entry[$feed["meta"]["pd_personal_mapped_details_pd_phone"]];
+                $phone = str_replace(' ', '', $entry[$feed["meta"]["pd_personal_mapped_details_pd_phone"]]);
                 if (strpos($phone, '0') === 0) {
                     $phone = substr($phone, 1);
                 }
@@ -614,11 +614,16 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                                 $error_message = __($response, 'gravityforms-bb-paydock');
                             } elseif (!empty($response->error->message)) {
                                 $error_message = __($response->error->message, 'gravityforms-bb-paydock');
-                            } elseif (property_exists($response->error, 'details')) {
+                            }
+                            if (property_exists($response->error, 'details')) {
                                 if (!is_object($response->error->details[0])) {
-                                    $error_message = __($response->error->details[0], 'gravityforms-bb-paydock');
+                                    if (!empty($error_message)) {
+                                        $error_message .= ': ';
+                                    }
+                                    $error_message .= __($response->error->details[0], 'gravityforms-bb-paydock');
                                 }
-                            } else {
+                            }
+                            if (empty($error_message)) {
                                 $error_message = __('An unknown error occured. Please try again.', 'gravityforms-bb-paydock');
                             }
                         }
