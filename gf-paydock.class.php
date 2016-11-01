@@ -27,8 +27,10 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
 
         public function init() {
             parent::init();
-            add_filter("gform_field_value_feed_reference", array($this, "generate_random_number"));
-            add_filter("gform_field_value_main_reference", array($this, "generate_random_main_number"));
+            add_filter('gform_field_value_feed_reference', array($this, 'generate_random_number'));
+            add_filter('gform_field_value_main_reference', array($this, 'generate_random_main_number'));
+            add_action('gform_admin_pre_render', array($this, 'add_merge_tags'));
+            add_filter('gform_replace_merge_tags', array($this, 'replace_merge_tags'), 10, 7);
         }
 
         public function plugin_page() {
@@ -648,13 +650,14 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                         return $auth;
                     } else {
                         $GLOBALS['transaction_id'] = $response->resource->data->_id;
+                        $GLOBALS['gateway_transaction_id'] = $response->resource->data->external_id;
 
-                        add_action("gform_after_submission", array($this, "paydock_post_purchase_actions"), 99, 2);
+                        add_action("gform_entry_created", array($this, "paydock_post_purchase_actions"), 99, 2);
 
                         $auth = array(
                                 'is_authorized' => true,
                                 'transaction_id' => $response->resource->data->_id,
-                                'amount' => $amount,
+                                'amount' => $total_amount,
                         );
                     }
                 }
@@ -710,8 +713,6 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                 curl_close($ch);
 
                 $response = json_decode($result);
-
-                $GLOBALS['transaction_id'] = $GLOBALS['pd_error'] = "";
 
                 if (!is_object($response) || $response->status > 201 || $response->_code > 250) {
                     if ($response == null || $response == '') {
@@ -810,12 +811,47 @@ EOM;
             }
             gform_update_meta($entry['id'], 'payment_status', 'Approved');
             gform_update_meta($entry['id'], 'payment_amount', $amount);
+            gform_update_meta($entry['id'], 'gateway_transaction_id', $GLOBALS['gateway_transaction_id']);
 
             GFAPI::update_entry_property($entry['id'], 'payment_amount', $amount);
             GFAPI::update_entry_property($entry['id'], 'payment_status', 'Approved');
             GFAPI::update_entry_property($entry['id'], 'transaction_id', $GLOBALS['transaction_id']);
 
             unset($_SESSION['PD_GATEWAY']);
+        }
+
+        public function add_merge_tags($form) {
+?>
+            <script type="text/javascript">
+                gform.addFilter('gform_merge_tags', 'add_merge_tags');
+                function add_merge_tags(mergeTags, elementId, hideAllFields, excludeFieldTypes, isPrepop, option) {
+                    mergeTags['paydock'] = {
+                            'label': 'Paydock',
+                            'tags': []
+                    };
+                    mergeTags["paydock"].tags.push({tag: '{paydock_transaction_id}', label: 'Paydock Transaction ID'});
+                    mergeTags["paydock"].tags.push({tag: '{gateway_transaction_id}', label: 'Gateway Transaction ID'});
+                    return mergeTags;
+                }
+            </script>
+<?php
+            return $form;
+        }
+
+        public function replace_merge_tags($text, $form, $entry, $url_encode, $esc_html, $nl2br, $format) {
+            $pd_merge_tag = '{paydock_transaction_id}';
+            $gateway_merge_tag = '{gateway_transaction_id}';
+
+            if ((strpos($text, $pd_merge_tag) === false && strpos($text, $gateway_merge_tag) === false) || empty($entry) || empty($form)) {
+                return $text;
+            }
+
+            $pd_transaction_id = rgar($entry, 'transaction_id');
+            $text = str_replace($pd_merge_tag, $pd_transaction_id, $text);
+
+            $gateway_transaction_id = gform_get_meta($entry['id'], 'gateway_transaction_id');
+            $text = str_replace($gateway_merge_tag, $gateway_transaction_id, $text);
+            return $text;
         }
 
         public function get_subscription($sub_id, $production = false) {
