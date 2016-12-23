@@ -609,26 +609,7 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                     $GLOBALS['transaction_id'] = $GLOBALS['pd_error'] = "";
 
                     if (!is_object($response) || $response->status > 201 || $response->_code > 250) {
-                        if ($response == null || $response == '') {
-                            $error_message = __('An unknown error occured. No response was received from the gateway. This is probably a temporary connection issue - please try again.', 'gravityforms-bb-paydock');
-                        } else {
-                            if (is_string($response)) {
-                                $error_message = __($response, 'gravityforms-bb-paydock');
-                            } elseif (!empty($response->error->message)) {
-                                $error_message = __($response->error->message, 'gravityforms-bb-paydock');
-                            }
-                            if (property_exists($response->error, 'details')) {
-                                if (!is_object($response->error->details[0])) {
-                                    if (!empty($error_message)) {
-                                        $error_message .= ': ';
-                                    }
-                                    $error_message .= __($response->error->details[0], 'gravityforms-bb-paydock');
-                                }
-                            }
-                            if (empty($error_message)) {
-                                $error_message = __('An unknown error occured. Please try again.', 'gravityforms-bb-paydock');
-                            }
-                        }
+                        $error_message = $this->get_paydock_error_message($response);
                         $GLOBALS['pd_error'] = $error_message;
 
                         add_filter('gform_validation_message', array($this, 'change_message'), 10, 2);
@@ -715,21 +696,7 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                 $response = json_decode($result);
 
                 if (!is_object($response) || $response->status > 201 || $response->_code > 250) {
-                    if ($response == null || $response == '') {
-                        $error_message = __('An unknown error occured. No response was received from the gateway. This is probably a temporary connection issue - please try again.', 'gravityforms-bb-paydock');
-                    } else {
-                        if (is_string($response)) {
-                            $error_message = __($response, 'gravityforms-bb-paydock');
-                        } elseif (!empty($response->error->message)) {
-                            $error_message = __($response->error->message, 'gravityforms-bb-paydock');
-                        } elseif (property_exists($response->error, 'details')) {
-                            if (!is_object($response->error->details[0])) {
-                                $error_message = __($response->error->details[0], 'gravityforms-bb-paydock');
-                            }
-                        } else {
-                            $error_message = __('An unknown error occured. Please try again.', 'gravityforms-bb-paydock');
-                        }
-                    }
+                    $error_message = $this->get_paydock_error_message($response);
                     $this->send_subscription_failed_email($first_name, $email, $amount, $interval, $frequency, $error_message);
                 }
             }
@@ -770,6 +737,33 @@ EOM;
         // @todo replace with get_validation_result() above
         public function change_message($message, $form) {
             return '<div class="validation_error">Error processing transaction: '.$GLOBALS['pd_error'].'.</div>';
+        }
+
+        private function get_paydock_error_message($response) {
+            $error_message = $error_details = '';
+            if ($response == null || $response == '') {
+                $error_message = __('An unknown error occured. No response was received from the gateway. This is probably a temporary connection issue - please try again.', 'gravityforms-bb-paydock');
+            } else {
+                if (is_string($response)) {
+                    $error_message = __($response, 'gravityforms-bb-paydock');
+                } elseif (!empty($response->error->message)) {
+                    $error_message = __($response->error->message, 'gravityforms-bb-paydock');
+                }
+                if (property_exists($response->error, 'details')) {
+                    if (!is_object($response->error->details[0])) {
+                        $error_details = __($response->error->details[0], 'gravityforms-bb-paydock');
+                    } elseif (isset($response->error->details[0]->gateway_specific_description)) {
+                        $error_details = $response->error->details[0]->gateway_specific_description;
+                    }
+                }
+                if (empty($error_message)) {
+                    $error_message = __('An unknown error occured. Please try again.', 'gravityforms-bb-paydock');
+                }
+            }
+            if (!empty($error_details)) {
+                $error_message .= ' ('.$error_details.')';
+            }
+            return $error_message;
         }
 
         // THIS IS OUR FUNCTION FOR CLEANING UP THE PRICING AMOUNTS THAT GF SPITS OUT
