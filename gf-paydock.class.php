@@ -27,14 +27,14 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
 
         public function init() {
             parent::init();
-            add_filter('gform_field_value_feed_reference', array($this, 'generate_random_number'));
-            add_filter('gform_field_value_main_reference', array($this, 'generate_random_main_number'));
+            add_filter("gform_field_value_feed_reference", array($this, "generate_random_number"));
+            add_filter("gform_field_value_main_reference", array($this, "generate_random_main_number"));
             add_action('gform_admin_pre_render', array($this, 'add_merge_tags'));
             add_filter('gform_replace_merge_tags', array($this, 'replace_merge_tags'), 10, 7);
         }
 
         public function plugin_page() {
-?>
+            ?>
 <a href="http://thepaydock.com" target="_blank"><img src="<?php echo plugin_dir_url(__FILE__).'/img/paydock_small.png' ?>"></a>
 <p>PayDock is a revolutionary way to integrate recurring and one-off payments into your website, regardless of gateway and free from hassle.</p>
 <p>PayDock settings are managed on a per-form basis.</p>
@@ -124,6 +124,18 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                                                     ),
                                             ),
                                     ),
+                                    array(
+                                            "label" => "Don't Create Subscriptions",
+                                            "type" => "checkbox",
+                                            "name" => "pd_dont_create_subscriptions",
+                                            "tooltip" => "Only select this if you have an integration in place with an external system (e.g. CRM) which is going to manage recurring payments.",
+                                            "choices" => array(
+                                                    array(
+                                                            "label" => "Only create one-off charges in Paydock, not subscriptions.",
+                                                            "name" => "pd_dont_create_subscriptions",
+                                                    ),
+                                            ),
+                                    ),
                                     array( // Can't override choices if it's part of the field_map below
                                             "name" => "pd_total_payable",
                                             "type" => "select",
@@ -143,13 +155,13 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                                             "label" => "Payment Type",
                                             "required" => false,
                                             'choices' => array(
-            	                                    array(
+                                                    array(
                                                             'value' => '',
-            	                                            'label' => 'Credit Card',
+                                                            'label' => 'Credit Card',
                                                     ),
-            	                                    array(
+                                                    array(
                                                             'value' => 'bsb',
-            	                                            'label' => 'Direct Debit',
+                                                            'label' => 'Direct Debit',
                                                     ),
                                             ),
                                     ),
@@ -365,23 +377,34 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
             return array(
                     array(
                             "title" => "Add your PayDock API keys below",
+                            'tooltip' => 'API keys can be found under My Account -> API & Settings',
                             "fields" => array(
                                     array(
+                                            "name" => "pd_production_public_key",
+                                            "label" => "Production Public Key",
+                                            "type" => "text",
+                                            "class" => "medium"
+                                    ),
+                                    array(
                                             "name" => "pd_production_api_key",
-                                            "tooltip" => "Add your API key from My Account -> API & Settings",
-                                            "label" => "PayDock Production API Key",
+                                            "label" => "Production Secret Key",
+                                            "type" => "text",
+                                            "class" => "medium"
+                                    ),
+                                    array(
+                                            "name" => "pd_sandbox_public_key",
+                                            "label" => "Sandbox Public Key",
                                             "type" => "text",
                                             "class" => "medium"
                                     ),
                                     array(
                                             "name" => "pd_sandbox_api_key",
-                                            "tooltip" => "Add your API key from My Account -> API & Settings",
-                                            "label" => "PayDock Sandbox API Key",
+                                            "label" => "Sandbox Secret Key",
                                             "type" => "text",
                                             "class" => "medium"
-                                    )
-                            )
-                    )
+                                    ),
+                            ),
+                    ),
             );
         }
 
@@ -392,37 +415,37 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
         }
 
         public function get_submission_data($feed, $form, $entry) {
-    		$form_data = array();
+            $form_data = array();
 
-    		$form_data['form_title'] = $form['title'];
+            $form_data['form_title'] = $form['title'];
 
-    		//getting mapped field data
-    		$billing_fields = $this->billing_info_fields();
-    		foreach ($billing_fields as $billing_field) {
-    			$field_name             = $billing_field['name'];
-    			$input_id               = rgar($feed['meta'], "billingInformation_{$field_name}");
-    			$form_data[$field_name] = $this->get_field_value($form, $entry, $input_id);
-    		}
+            //getting mapped field data
+            $billing_fields = $this->billing_info_fields();
+            foreach ($billing_fields as $billing_field) {
+                $field_name             = $billing_field['name'];
+                $input_id               = rgar($feed['meta'], "billingInformation_{$field_name}");
+                $form_data[$field_name] = $this->get_field_value($form, $entry, $input_id);
+            }
 
-    		//getting credit card field data
-    		$card_field = $this->get_credit_card_field($form);
-    		if ($card_field) {
-    			$form_data['card_number']          = $this->remove_spaces_from_card_number(rgpost("input_{$card_field->id}_1"));
-    			$form_data['card_expiration_date'] = rgpost("input_{$card_field->id}_2");
-    			$form_data['card_security_code']   = rgpost("input_{$card_field->id}_3");
-    			$form_data['card_name']            = rgpost("input_{$card_field->id}_5");
-    		}
+            //getting credit card field data
+            $card_field = $this->get_credit_card_field($form);
+            if ($card_field) {
+                $form_data['card_number']          = $this->remove_spaces_from_card_number(rgpost("input_{$card_field->id}_1"));
+                $form_data['card_expiration_date'] = rgpost("input_{$card_field->id}_2");
+                $form_data['card_security_code']   = rgpost("input_{$card_field->id}_3");
+                $form_data['card_name']            = rgpost("input_{$card_field->id}_5");
+            }
 
-    		//getting product field data
-    		$order_info = $this->get_order_data($feed, $form, $entry);
-    		$form_data  = array_merge($form_data, $order_info);
+            //getting product field data
+            $order_info = $this->get_order_data($feed, $form, $entry);
+            $form_data  = array_merge($form_data, $order_info);
 
-    		// Hack to allow it to process the feed
-    		if ($form_data['payment_amount'] == 0) {
-    		    $form_data['payment_amount'] = 1;
-    		}
+            // Hack to allow it to process the feed
+            if ($form_data['payment_amount'] == 0) {
+                $form_data['payment_amount'] = 1;
+            }
 
-    		return $form_data;
+            return $form_data;
         }
 
         public function authorize($feed, $submission_data, $form, $entry) {
@@ -451,10 +474,10 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
 
             $first_name = $entry[$feed["meta"]["pd_personal_mapped_details_pd_first_name"]];
             $last_name = $entry[$feed["meta"]["pd_personal_mapped_details_pd_last_name"]];
-            $email = $entry[$feed["meta"]["pd_personal_mapped_details_pd_email"]];
+            $email = strtolower(trim($entry[$feed["meta"]["pd_personal_mapped_details_pd_email"]]));
             $phone = '';
             if (!empty($entry[$feed["meta"]["pd_personal_mapped_details_pd_phone"]])) {
-                $phone = str_replace(' ', '', $entry[$feed["meta"]["pd_personal_mapped_details_pd_phone"]]);
+                $phone = preg_replace('/[^\+\d]/', '', $entry[$feed["meta"]["pd_personal_mapped_details_pd_phone"]]);
                 if (strpos($phone, '0') === 0) {
                     $phone = substr($phone, 1);
                 }
@@ -503,8 +526,9 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                 if (!empty($_SESSION[BB_CART_SESSION_ITEM])) {
                     $cart_items = $_SESSION[BB_CART_SESSION_ITEM];
                     if (!empty($cart_items['woo']) && class_exists('WC_Product_Factory')) { // WooCommerce
-                        if (!isset($transactions['one-off']))
+                        if (!isset($transactions['one-off'])) {
                             $transactions['one-off'] = 0;
+                        }
                         foreach ($cart_items['woo'] as $product) {
                             $product_factory = new WC_Product_Factory();
                             $prod_obj = $product_factory->get_product($product['product_id']);
@@ -514,8 +538,9 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                         $transactions['one-off'] += bb_cart_calculate_shipping();
                     }
                     if (!empty($cart_items['event'])) { // Event Manager Pro
-                        if (!isset($transactions['one-off']))
+                        if (!isset($transactions['one-off'])) {
                             $transactions['one-off'] = 0;
+                        }
                         foreach ($cart_items['event'] as $event) {
                             $transactions['one-off'] += $event['booking']->booking_price;
                         }
@@ -530,17 +555,26 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                             $transactions[$cart_item['frequency']] += $quantity*$cart_item['price']/100;
                         }
                     }
+                    if (function_exists('bb_cart_total_shipping')) {
+                        $shipping = bb_cart_total_shipping();
+                        if ($shipping > 0) {
+                            if (!isset($transactions['one-off'])) {
+                                $transactions['one-off'] = 0;
+                            }
+                            $transactions['one-off'] += $shipping;
+                        }
+                    }
                 }
             } elseif ($amount_field == 'total') {
                 foreach ($form["fields"] as $key => $field) {
                     if ($field['type'] == 'product') {
                         switch ($field['inputType']) {
-                        	case 'singleproduct':
-                        	    $amount = $this->clean_amount($entry[$field['id'].'.2'])/100;
-                        	    break;
-                        	default:
-                        	    $amount = $this->clean_amount($entry[$field['id']])/100;
-                        	    break;
+                            case 'singleproduct':
+                                $amount = $this->clean_amount($entry[$field['id'].'.2'])/100;
+                                break;
+                            default:
+                                $amount = $this->clean_amount($entry[$field['id']])/100;
+                                break;
                         }
                         if (!isset($transactions[$interval])) {
                             $transactions[$interval] = 0;
@@ -564,7 +598,24 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                     }
                 }
             } else {
-                $transactions[$interval] = $this->clean_amount($entry[$amount_field])/100;
+                foreach ($form["fields"] as $key => $field) {
+                    if ($field->id == $amount_field) {
+                        if ($field->type == 'product') {
+                            switch ($field->inputType) {
+                                case 'singleproduct':
+                                case 'hiddenproduct':
+                                    $transactions[$interval] = $this->clean_amount($entry[$amount_field.'.2'])/100;
+                                    break;
+                                default:
+                                    $transactions[$interval] = $this->clean_amount($entry[$amount_field])/100;
+                                    break;
+                            }
+                        } else {
+                            $transactions[$interval] = $this->clean_amount($entry[$amount_field])/100;
+                        }
+                        break;
+                    }
+                }
             }
 
             $total_amount = array_sum($transactions);
@@ -581,7 +632,7 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                 add_filter('gform_validation_message', array($this, 'change_message'), 10, 2);
                 return $auth;
             } else {
-                if (!empty($start_date) || strtotime($start_date > time())) { // If start date in future, we don't want to process recurring transactions now
+                if (!empty($start_date) && strtotime($start_date) > time()) { // If start date in future, we don't want to process recurring transactions now
                     $total_amount = $transactions['one-off'];
                 }
                 if ($total_amount > 0) {
@@ -644,41 +695,11 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                 }
             }
 
-            // Now we can set up subscriptions for any recurring transactions
-            foreach ($transactions as $interval => $amount) {
-                if ($interval == 'one-off' || $amount <= 0) {
-                    continue;
-                }
-                $data['amount'] = $amount;
+            if ($feed['meta']['pd_dont_create_subscriptions']) {
+                // If they don't want to set up subscriptions, just generate a one-time token that can be used by the other system
+                $api_url = $feed_uri . 'payment_sources/tokens?public_key='.$pd_options['pd_production_public_key'];
 
-                // Set the right API endpoint
-                $api_url = $feed_uri . 'subscriptions/';
-
-                $frequency = $entry[$feed["meta"]["pd_payment_type_mapped_details_pd_payment_frequency"]];
-                if (empty($frequency)) {
-                    $frequency = 1;
-                }
-
-                // Hack to support fortnightly recurrence
-                if ($interval == 'fortnight') {
-                    $interval = 'week';
-                    $frequency = 2;
-                }
-
-                $data["schedule"]["frequency"] = $frequency;
-                $data["schedule"]["interval"] = $interval;
-
-                if (empty($start_date)) {
-                    $start_date = date('Y-m-d', strtotime('+'.$frequency.' '.$interval));
-                }
-                $data["schedule"]["start_date"] = $start_date;
-
-                $end_date = $entry[$feed["meta"]["pd_payment_type_mapped_details_pd_payment_end_date"]];
-                if ($end_date != "") {
-                    $data["schedule"]["end_date"] = $end_date;
-                }
-
-                $data_string = json_encode($data);
+                $data_string = json_encode($data["customer"]["payment_source"]);
 
                 $ch = curl_init();
                 curl_setopt($ch, CURLOPT_URL, $api_url);
@@ -694,10 +715,76 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                 curl_close($ch);
 
                 $response = json_decode($result);
-
                 if (!is_object($response) || $response->status > 201 || $response->_code > 250) {
                     $error_message = $this->get_paydock_error_message($response);
-                    $this->send_subscription_failed_email($first_name, $email, $amount, $interval, $frequency, $error_message);
+                    $GLOBALS['pd_error'] = $error_message;
+                } else {
+                    $GLOBALS['pd_token_id'] = $response->resource->data;
+                }
+            } else {
+                // Now we can set up subscriptions for any recurring transactions
+                foreach ($transactions as $interval => $amount) {
+                    if ($interval == 'one-off' || $amount <= 0) {
+                        continue;
+                    }
+                    $data['amount'] = $amount;
+
+                    // Set the right API endpoint
+                    $api_url = $feed_uri . 'subscriptions/';
+
+                    $frequency = $entry[$feed["meta"]["pd_payment_type_mapped_details_pd_payment_frequency"]];
+                    if (empty($frequency)) {
+                        $frequency = 1;
+                    }
+
+                    // Hack to support fortnightly recurrence
+                    if ($interval == 'fortnight') {
+                        $interval = 'week';
+                        $frequency = 2;
+                    }
+
+                    $data["schedule"]["frequency"] = $frequency;
+                    $data["schedule"]["interval"] = $interval;
+
+                    if (empty($start_date)) {
+                        $start_date = date('Y-m-d', strtotime('+'.$frequency.' '.$interval));
+                    }
+                    $data["schedule"]["start_date"] = $start_date;
+
+                    $end_date = $entry[$feed["meta"]["pd_payment_type_mapped_details_pd_payment_end_date"]];
+                    if ($end_date != "") {
+                        $data["schedule"]["end_date"] = $end_date;
+                    }
+
+                    $data_string = json_encode($data);
+
+                    $ch = curl_init();
+                    curl_setopt($ch, CURLOPT_URL, $api_url);
+                    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
+                    curl_setopt($ch, CURLOPT_POSTFIELDS, $data_string);
+                    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                    curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+                            'x-user-token:' . $request_token,
+                            'Content-Type: application/json',
+                            'Content-Length: ' . strlen($data_string)
+                    ));
+                    $result = curl_exec($ch);
+                    curl_close($ch);
+
+                    $response = json_decode($result);
+
+                    $GLOBALS['transaction_id'] = $GLOBALS['pd_error'] = "";
+
+                    if (!is_object($response) || $response->status > 201 || $response->_code > 250) {
+                        $error_message = $this->get_paydock_error_message($response);
+                        $this->send_subscription_failed_email($first_name, $email, $amount, $interval, $frequency, $error_message);
+                    } elseif (empty($auth)) { // We only processed a future-dated subscription
+                        $auth = array(
+                                'is_authorized' => true,
+                                'transaction_id' => $response->resource->data->_id,
+                                'amount' => 0,
+                        );
+                    }
                 }
             }
             return $auth;
@@ -716,23 +803,23 @@ EOM;
         }
 
         // @todo make this work
-//     	protected function get_validation_result($validation_result, $authorization_result) {
-//     		$credit_card_page = 0;
-//     		foreach ($validation_result['form']['fields'] as &$field) {
-//     			if ($field->type == 'creditcard') {
-//     				$field->failed_validation  = true;
-//     				$field->validation_message = $authorization_result['error_message'];
-//     				$credit_card_page          = $field->pageNumber;
-//     				break;
-//     			}
-//     		}
+//         protected function get_validation_result($validation_result, $authorization_result) {
+//             $credit_card_page = 0;
+//             foreach ($validation_result['form']['fields'] as &$field) {
+//                 if ($field->type == 'creditcard') {
+//                     $field->failed_validation  = true;
+//                     $field->validation_message = $authorization_result['error_message'];
+//                     $credit_card_page          = $field->pageNumber;
+//                     break;
+//                 }
+//             }
 
-//     		$validation_result['credit_card_page'] = $credit_card_page;
-//     		$validation_result['is_valid']         = false;
-//     		$validation_result["form"]["error"]    = $authorization_result['error_message'];
+//             $validation_result['credit_card_page'] = $credit_card_page;
+//             $validation_result['is_valid']         = false;
+//             $validation_result["form"]["error"]    = $authorization_result['error_message'];
 
-//     		return $validation_result;
-//     	}
+//             return $validation_result;
+//         }
 
         // @todo replace with get_validation_result() above
         public function change_message($message, $form) {
@@ -1102,6 +1189,59 @@ EOM;
         public function subscription_belongs_to_email($sub_id, $email, $production) {
             $subscription = $this->get_subscription($sub_id, $production);
             return $subscription->resource->data->customer->email == $email;
+        }
+
+        /**
+         * Get payment sources by email address
+         *
+         * @param string $email_address
+         */
+        public function get_payment_sources_by_email_address( $email_address, $production ) {
+            $default_payment_sources = array();
+
+            // Pull all subscriptions by email address
+            $subscriptions = $this->get_subscriptions_by_email( $email_address, $production );
+
+            foreach ( $subscriptions->resource->data as $subscription ) {
+                // Get customer ID
+                $customer_id = $subscription->customer->customer_id;
+
+                // Get customer details
+                $customer = $this->get_customer( $customer_id, $production );
+
+                // Get default payment source for a customer
+                $default_payment_source = $this->_get_default_payment_source_of_a_customer( $customer );
+
+                if ( $default_payment_source ) {
+                    $default_payment_sources[] = $default_payment_source;
+                }
+            }
+
+            return $default_payment_sources;
+        }
+
+        /**
+         * Get default payment source for a provided customer
+         *
+         * @param string $default_payment_source_id
+         * @param array $payment_sources
+         * @return bool|stdClass
+         */
+        protected function _get_default_payment_source_of_a_customer( stdClass $customer ) {
+            if ( ! isset( $customer->resource->data->default_source ) || ! isset( $customer->resource->data->payment_sources ) ) {
+                return false;
+            }
+
+            $payment_sources = $customer->resource->data->payment_sources;
+            $default_payment_source_id = $customer->resource->data->default_source;
+
+            foreach ( $payment_sources as $payment_source ) {
+                if ( $default_payment_source_id === $payment_source->_id ) {
+                    return $payment_source;
+                }
+            }
+
+            return false;
         }
     }
 }
