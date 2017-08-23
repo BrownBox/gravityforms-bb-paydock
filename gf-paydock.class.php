@@ -33,15 +33,6 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
             add_filter('gform_replace_merge_tags', array($this, 'replace_merge_tags'), 10, 7);
         }
 
-        public function plugin_page() {
-            ?>
-<a href="http://thepaydock.com" target="_blank"><img src="<?php echo plugin_dir_url(__FILE__).'/img/paydock_small.png' ?>"></a>
-<p>PayDock is a revolutionary way to integrate recurring and one-off payments into your website, regardless of gateway and free from hassle.</p>
-<p>PayDock settings are managed on a per-form basis.</p>
-<p><a href="http://docs.thepaydock.com">Click here</a> for API documentation or <a href="mailto:support@thepaydock.com">email PayDock for support</a>.</p>
-<?php
-        }
-
         public function feed_settings_fields() {
             $pd_options = $this->get_plugin_settings();
 
@@ -131,7 +122,7 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                                             "tooltip" => "Only select this if you have an integration in place with an external system (e.g. CRM) which is going to manage recurring payments.",
                                             "choices" => array(
                                                     array(
-                                                            "label" => "Only create one-off charges in Paydock, not subscriptions.",
+                                                            "label" => "Only create one-off charges in PayDock, not subscriptions.",
                                                             "name" => "pd_dont_create_subscriptions",
                                                     ),
                                             ),
@@ -375,6 +366,12 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
 
         public function plugin_settings_fields() {
             return array(
+                    array(
+                            'title' => '<a href="https://paydock.com" target="_blank"><img src="'.plugin_dir_url(__FILE__).'/img/paydock_small.png"></a>',
+                            'description' => '<p>PayDock is a smart payments platform designed for Merchants and Developers.</p>
+<p>You will need to <a href="https://app.paydock.com/auth/sign-up" target="_blank">sign up for a PayDock account</a> if you don\'t already have one.</p>
+<p>Please note that this plugin was developed by <a href="http://brownbox.net.au/" target="_blank">Brown Box</a>. It is recommended but not officially supported by PayDock.</p>',
+                    ),
                     array(
                             "title" => "Add your PayDock API keys below",
                             'tooltip' => 'API keys can be found under My Account -> API & Settings',
@@ -907,10 +904,10 @@ EOM;
                 gform.addFilter('gform_merge_tags', 'add_merge_tags');
                 function add_merge_tags(mergeTags, elementId, hideAllFields, excludeFieldTypes, isPrepop, option) {
                     mergeTags['paydock'] = {
-                            'label': 'Paydock',
+                            'label': 'PayDock',
                             'tags': []
                     };
-                    mergeTags["paydock"].tags.push({tag: '{paydock_transaction_id}', label: 'Paydock Transaction ID'});
+                    mergeTags["paydock"].tags.push({tag: '{paydock_transaction_id}', label: 'PayDock Transaction ID'});
                     mergeTags["paydock"].tags.push({tag: '{gateway_transaction_id}', label: 'Gateway Transaction ID'});
                     return mergeTags;
                 }
