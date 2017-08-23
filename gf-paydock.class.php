@@ -881,14 +881,13 @@ EOM;
                 $startsAt = strpos($entry, "$") + strlen("$");
                 $endsAt = strlen($entry);
                 $amount = substr($entry, 0, $endsAt);
-                $amount = preg_replace("/[^0-9,.]/", "", $amount);
+                $amount = preg_replace("/[^0-9.]/", "", $amount);
             } else {
-                $amount = preg_replace("/[^0-9,.]/", "", $entry);
+                $amount = preg_replace("/[^0-9.]/", "", $entry);
                 $amount = sprintf("%.2f", $amount);
             }
 
             $amount = str_replace('.', '', $amount);
-            $amount = str_replace(',', '', $amount);
             return $amount;
         }
 
