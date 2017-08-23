@@ -154,6 +154,10 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                                                             'value' => 'bsb',
                                                             'label' => 'Direct Debit',
                                                     ),
+                                                    array(
+                                                            'value' => 'payment_source',
+                                                            'label' => 'Existing Payment Source',
+                                                    ),
                                             ),
                                     ),
                                     array(
@@ -229,24 +233,34 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                                                             "required" => false,
                                                     ),
                                                     array(
+                                                            "name" => "pd_customer",
+                                                            "label" => "Customer",
+                                                            "required" => false,
+                                                            'tooltip' => 'Required if "Existing Payment Source" selected',
+                                                    ),
+                                                    array(
                                                             "name" => "pd_payment_source",
                                                             "label" => "Payment Source",
                                                             "required" => false,
+                                                            'tooltip' => 'Only used if "Existing Payment Source" selected. If left empty, customer\'s default payment source will be used',
                                                     ),
                                                     array(
                                                             "name" => "pd_account_name",
                                                             "label" => "Account Name",
                                                             "required" => false,
+                                                            'tooltip' => 'Required if "Direct Debit" selected',
                                                     ),
                                                     array(
                                                             "name" => "pd_account_bsb",
                                                             "label" => "Account BSB",
                                                             "required" => false,
+                                                            'tooltip' => 'Required if "Direct Debit" selected',
                                                     ),
                                                     array(
                                                             "name" => "pd_account_number",
                                                             "label" => "Account Number",
                                                             "required" => false,
+                                                            'tooltip' => 'Required if "Direct Debit" selected',
                                                     ),
                                             ),
                                     ),
@@ -449,51 +463,58 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
             $data = array();
 
             $payment_type = $feed["meta"]["pd_payment_type"];
-            if ($payment_type == "bsb") {
-                $data["customer"]["payment_source"]["type"] = "bsb";
-                $data["customer"]["payment_source"]["account_name"] = $entry[$feed["meta"]["pd_payment_mapped_details_pd_account_name"]];
-                $data["customer"]["payment_source"]["account_bsb"] = str_replace('-', '', $entry[$feed["meta"]["pd_payment_mapped_details_pd_account_bsb"]]);
-                $data["customer"]["payment_source"]["account_number"] = $entry[$feed["meta"]["pd_payment_mapped_details_pd_account_number"]];
+            if ($payment_type == 'payment_source') {
+                $data['customer_id'] = $entry[$feed["meta"]["pd_payment_mapped_details_pd_customer"]];
+                if (!empty($entry[$feed["meta"]["pd_payment_mapped_details_pd_payment_source"]])) {
+                    $data['customer']['payment_source_id'] = $entry[$feed["meta"]["pd_payment_mapped_details_pd_payment_source"]];
+                }
             } else {
-                $data["customer"]["payment_source"]["card_name"] = $submission_data['card_name'];
-                $data["customer"]["payment_source"]["card_number"] = $submission_data['card_number'];
-                $ccdate_array = $submission_data['card_expiration_date'];
-                $ccdate_month = $ccdate_array[0];
-                if (strlen($ccdate_month) < 2)
-                    $ccdate_month = '0' . $ccdate_month;
-                $ccdate_year = $ccdate_array[1];
-                if (strlen($ccdate_year) > 2)
-                    $ccdate_year = substr($ccdate_year, -2); // Only want last 2 digits
-                $data["customer"]["payment_source"]["expire_month"] = $ccdate_month;
-                $data["customer"]["payment_source"]["expire_year"] = $ccdate_year;
-                $data["customer"]["payment_source"]["card_ccv"] = $submission_data['card_security_code'];
-            }
-
-            $first_name = $entry[$feed["meta"]["pd_personal_mapped_details_pd_first_name"]];
-            $last_name = $entry[$feed["meta"]["pd_personal_mapped_details_pd_last_name"]];
-            $email = strtolower(trim($entry[$feed["meta"]["pd_personal_mapped_details_pd_email"]]));
-            $phone = '';
-            if (!empty($entry[$feed["meta"]["pd_personal_mapped_details_pd_phone"]])) {
-                $phone = preg_replace('/[^\+\d]/', '', $entry[$feed["meta"]["pd_personal_mapped_details_pd_phone"]]);
-                if (strpos($phone, '0') === 0) {
-                    $phone = substr($phone, 1);
+                if ($payment_type == "bsb") {
+                    $data["customer"]["payment_source"]["type"] = "bsb";
+                    $data["customer"]["payment_source"]["account_name"] = $entry[$feed["meta"]["pd_payment_mapped_details_pd_account_name"]];
+                    $data["customer"]["payment_source"]["account_bsb"] = str_replace('-', '', $entry[$feed["meta"]["pd_payment_mapped_details_pd_account_bsb"]]);
+                    $data["customer"]["payment_source"]["account_number"] = $entry[$feed["meta"]["pd_payment_mapped_details_pd_account_number"]];
+                } else {
+                    $data["customer"]["payment_source"]["card_name"] = $submission_data['card_name'];
+                    $data["customer"]["payment_source"]["card_number"] = $submission_data['card_number'];
+                    $ccdate_array = $submission_data['card_expiration_date'];
+                    $ccdate_month = $ccdate_array[0];
+                    if (strlen($ccdate_month) < 2)
+                        $ccdate_month = '0' . $ccdate_month;
+                    $ccdate_year = $ccdate_array[1];
+                    if (strlen($ccdate_year) > 2)
+                        $ccdate_year = substr($ccdate_year, -2); // Only want last 2 digits
+                    $data["customer"]["payment_source"]["expire_month"] = $ccdate_month;
+                    $data["customer"]["payment_source"]["expire_year"] = $ccdate_year;
+                    $data["customer"]["payment_source"]["card_ccv"] = $submission_data['card_security_code'];
                 }
-                if (strpos($phone, '+') === false) {
-                    $phone = '+61'.$phone;
-                }
-            }
 
-            $data["customer"]["payment_source"]["gateway_id"] = $feed["meta"]["pd_select_gateway"];
-            $data["customer"]["first_name"] = $first_name;
-            $data["customer"]["last_name"] = $last_name;
-            $data["customer"]["email"] = $email;
-            $data["customer"]["phone"] = $phone;
-            $data["customer"]["payment_source"]["address_line1"] = $entry[$feed["meta"]["pd_personal_mapped_details_pd_address_line1"]];
-            $data["customer"]["payment_source"]["address_line2"] = $entry[$feed["meta"]["pd_personal_mapped_details_pd_address_line2"]];
-            $data["customer"]["payment_source"]["address_city"] = $entry[$feed["meta"]["pd_personal_mapped_details_pd_address_city"]];
-            $data["customer"]["payment_source"]["address_state"] = $entry[$feed["meta"]["pd_personal_mapped_details_pd_address_state"]];
-            $data["customer"]["payment_source"]["address_postcode"] = $entry[$feed["meta"]["pd_personal_mapped_details_pd_address_postcode"]];
-            $data["customer"]["payment_source"]["address_country"] = $entry[$feed["meta"]["pd_personal_mapped_details_pd_address_country"]];
+                $first_name = $entry[$feed["meta"]["pd_personal_mapped_details_pd_first_name"]];
+                $last_name = $entry[$feed["meta"]["pd_personal_mapped_details_pd_last_name"]];
+                $email = strtolower(trim($entry[$feed["meta"]["pd_personal_mapped_details_pd_email"]]));
+                $phone = '';
+                if (!empty($entry[$feed["meta"]["pd_personal_mapped_details_pd_phone"]])) {
+                    $phone = preg_replace('/[^\+\d]/', '', $entry[$feed["meta"]["pd_personal_mapped_details_pd_phone"]]);
+                    if (strpos($phone, '0') === 0) {
+                        $phone = substr($phone, 1);
+                    }
+                    if (strpos($phone, '+') === false) {
+                        $phone = '+61'.$phone;
+                    }
+                }
+
+                $data["customer"]["payment_source"]["gateway_id"] = $feed["meta"]["pd_select_gateway"];
+                $data["customer"]["first_name"] = $first_name;
+                $data["customer"]["last_name"] = $last_name;
+                $data["customer"]["email"] = $email;
+                $data["customer"]["phone"] = $phone;
+                $data["customer"]["payment_source"]["address_line1"] = $entry[$feed["meta"]["pd_personal_mapped_details_pd_address_line1"]];
+                $data["customer"]["payment_source"]["address_line2"] = $entry[$feed["meta"]["pd_personal_mapped_details_pd_address_line2"]];
+                $data["customer"]["payment_source"]["address_city"] = $entry[$feed["meta"]["pd_personal_mapped_details_pd_address_city"]];
+                $data["customer"]["payment_source"]["address_state"] = $entry[$feed["meta"]["pd_personal_mapped_details_pd_address_state"]];
+                $data["customer"]["payment_source"]["address_postcode"] = $entry[$feed["meta"]["pd_personal_mapped_details_pd_address_postcode"]];
+                $data["customer"]["payment_source"]["address_country"] = $entry[$feed["meta"]["pd_personal_mapped_details_pd_address_country"]];
+            }
             $data["reference"] = $entry[$feed["meta"]["pd_payment_mapped_details_pd_transaction_reference"]];
             $data["description"] = $entry[$feed["meta"]["pd_payment_mapped_details_pd_description"]];
             $data["currency"] = (!empty($entry[$feed["meta"]["pd_currency"]])) ? $entry[$feed["meta"]["pd_currency"]] : GFCommon::get_currency();
