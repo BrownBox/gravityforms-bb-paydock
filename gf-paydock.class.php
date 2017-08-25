@@ -31,6 +31,7 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
             add_filter("gform_field_value_main_reference", array($this, "generate_random_main_number"));
             add_action('gform_admin_pre_render', array($this, 'add_merge_tags'));
             add_filter('gform_replace_merge_tags', array($this, 'replace_merge_tags'), 10, 7);
+            add_action('profile_update', array($this, 'update_email_address'), 10, 2);
         }
 
         public function feed_settings_fields() {
@@ -1011,7 +1012,7 @@ EOM;
             }
 
             $ch = curl_init();
-            curl_setopt($ch, CURLOPT_URL, $feed_uri.'subscriptions/?status=active&search='.$email);
+            curl_setopt($ch, CURLOPT_URL, $feed_uri.'subscriptions/?status=active&search='.urlencode($email));
             curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "GET");
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
             curl_setopt($ch, CURLOPT_HTTPHEADER, array(
@@ -1110,7 +1111,7 @@ EOM;
             }
 
             $ch = curl_init();
-            curl_setopt($ch, CURLOPT_URL, $feed_uri.'charges/?search='.$email);
+            curl_setopt($ch, CURLOPT_URL, $feed_uri.'charges/?search='.urlencode($email));
             curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "GET");
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
             curl_setopt($ch, CURLOPT_HTTPHEADER, array(
@@ -1147,6 +1148,30 @@ EOM;
             return json_decode($result);
         }
 
+        public function get_customers_by_email($email, $production = false) {
+            $pd_options = $this->get_plugin_settings();
+            if ($production) {
+                $request_token = $pd_options['pd_production_api_key'];
+                $feed_uri = $this->production_endpoint;
+            } else {
+                $request_token = $pd_options['pd_sandbox_api_key'];
+                $feed_uri = $this->sandbox_endpoint;
+            }
+
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $feed_uri.'customers/?search='.urlencode($email));
+            curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "GET");
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+                    'x-user-token:' . $request_token,
+                    'Content-Type: application/json',
+            ));
+            $result = curl_exec($ch);
+            curl_close($ch);
+
+            return json_decode($result);
+        }
+
         public function get_customer($customer_id, $production = false) {
             $pd_options = $this->get_plugin_settings();
             if ($production) {
@@ -1169,6 +1194,29 @@ EOM;
             curl_close($ch);
 
             return json_decode($result);
+        }
+
+        public function update_email_address($user_id, $old_user_data) {
+            $new_user_data = get_user_by('id', $user_id);
+            $new_email = $new_user_data->user_email;
+            $old_email = $old_user_data->user_email;
+            if (!empty($new_email) && !empty($old_email) && $new_email != $old_email) {
+                $env = array();
+                $pd_options = $this->get_plugin_settings();
+                if (!empty($pd_options['pd_production_api_key'])) {
+                    $env[] = true;
+                }
+                if (!empty($pd_options['pd_sandbox_api_key'])) {
+                    $env[] = false;
+                }
+                foreach ($env as $production) {
+                    $customers = $this->get_customers_by_email($old_email, $production);
+                    foreach ($customers->resource->data as $customer) {
+                        $data = array('email' => $new_email);
+                        $this->update_customer($customer->_id, $data, $production);
+                    }
+                }
+            }
         }
 
         public function update_customer($customer_id, array $data, $production = false) {
