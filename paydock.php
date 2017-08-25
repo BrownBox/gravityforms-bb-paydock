@@ -3,7 +3,7 @@
 Plugin Name: Gravity Forms Brown Box PayDock Add-On
 Plugin URI: http://brownbox.net.au/
 Description: Integrates Gravity Forms with <a href="http://thepaydock.com/">PayDock</a>, enabling end users to purchase goods and services through Gravity Forms.
-Version: 3.2
+Version: 3.2.1
 Author: Brown Box
 Author URI: http://brownbox.net.au/
 Text Domain: gravityforms-bb-paydock
@@ -27,7 +27,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 */
 
-define('GF_PAYDOCK_VERSION', '3.2');
+define('GF_PAYDOCK_VERSION', '3.2.1');
 
 add_action('gform_loaded', array('GF_PayDock_Launch', 'load'), 5);
 
