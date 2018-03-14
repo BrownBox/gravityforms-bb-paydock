@@ -32,6 +32,7 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
             add_action('gform_admin_pre_render', array($this, 'add_merge_tags'));
             add_filter('gform_replace_merge_tags', array($this, 'replace_merge_tags'), 10, 7);
             add_action('profile_update', array($this, 'update_email_address'), 10, 2);
+            add_action('bbconnect_merge_users', array($this, 'update_email_address'), 10, 2);
         }
 
         public function feed_settings_fields() {
