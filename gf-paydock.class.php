@@ -547,45 +547,49 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
             }
             $amount_field = $feed["meta"]["pd_total_payable"];
             if ($amount_field == 'bb_cart') {
-                if (!empty($_SESSION[BB_CART_SESSION_ITEM])) {
-                    $cart_items = $_SESSION[BB_CART_SESSION_ITEM];
-                    if (!empty($cart_items['woo']) && class_exists('WC_Product_Factory')) { // WooCommerce
-                        if (!isset($transactions['one-off'])) {
-                            $transactions['one-off'] = 0;
-                        }
-                        foreach ($cart_items['woo'] as $product) {
-                            $product_factory = new WC_Product_Factory();
-                            $prod_obj = $product_factory->get_product($product['product_id']);
-                            $transactions['one-off'] += $prod_obj->get_price_excluding_tax($product['quantity']);
-                        }
-                        unset($cart_items['woo']);
-                        $transactions['one-off'] += bb_cart_calculate_shipping();
-                    }
-                    if (!empty($cart_items['event'])) { // Event Manager Pro
-                        if (!isset($transactions['one-off'])) {
-                            $transactions['one-off'] = 0;
-                        }
-                        foreach ($cart_items['event'] as $event) {
-                            $transactions['one-off'] += $event['booking']->booking_price;
-                        }
-                        unset($cart_items['event']);
-                    }
-                    if (!empty($cart_items)) { // BB Cart
-                        foreach ($cart_items as $cart_item) {
-                            if (!isset($transactions[$cart_item['frequency']])) {
-                                $transactions[$cart_item['frequency']] = 0;
-                            }
-                            $quantity = !empty($cart_item['quantity']) ? $cart_item['quantity'] : 1;
-                            $transactions[$cart_item['frequency']] += $quantity*$cart_item['price']/100;
-                        }
-                    }
-                    if (function_exists('bb_cart_total_shipping')) {
-                        $shipping = bb_cart_total_shipping();
-                        if ($shipping > 0) {
+                if (function_exists('bb_cart_amounts_by_frequency')) { // BB Cart 3.0+
+                    $transactions = bb_cart_amounts_by_frequency();
+                } else { // BB Cart < 3.0
+                    if (!empty($_SESSION[BB_CART_SESSION_ITEM])) {
+                        $cart_items = $_SESSION[BB_CART_SESSION_ITEM];
+                        if (!empty($cart_items['woo']) && class_exists('WC_Product_Factory')) { // WooCommerce
                             if (!isset($transactions['one-off'])) {
                                 $transactions['one-off'] = 0;
                             }
-                            $transactions['one-off'] += $shipping;
+                            foreach ($cart_items['woo'] as $product) {
+                                $product_factory = new WC_Product_Factory();
+                                $prod_obj = $product_factory->get_product($product['product_id']);
+                                $transactions['one-off'] += $prod_obj->get_price_excluding_tax($product['quantity']);
+                            }
+                            unset($cart_items['woo']);
+                            $transactions['one-off'] += bb_cart_calculate_shipping();
+                        }
+                        if (!empty($cart_items['event'])) { // Event Manager Pro
+                            if (!isset($transactions['one-off'])) {
+                                $transactions['one-off'] = 0;
+                            }
+                            foreach ($cart_items['event'] as $event) {
+                                $transactions['one-off'] += $event['booking']->booking_price;
+                            }
+                            unset($cart_items['event']);
+                        }
+                        if (!empty($cart_items)) { // BB Cart
+                            foreach ($cart_items as $cart_item) {
+                                if (!isset($transactions[$cart_item['frequency']])) {
+                                    $transactions[$cart_item['frequency']] = 0;
+                                }
+                                $quantity = !empty($cart_item['quantity']) ? $cart_item['quantity'] : 1;
+                                $transactions[$cart_item['frequency']] += $quantity*$cart_item['price']/100;
+                            }
+                        }
+                        if (function_exists('bb_cart_total_shipping')) {
+                            $shipping = bb_cart_total_shipping();
+                            if ($shipping > 0) {
+                                if (!isset($transactions['one-off'])) {
+                                    $transactions['one-off'] = 0;
+                                }
+                                $transactions['one-off'] += $shipping;
+                            }
                         }
                     }
                 }
