@@ -517,8 +517,12 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                 $data["customer"]["payment_source"]["address_postcode"] = $entry[$feed["meta"]["pd_personal_mapped_details_pd_address_postcode"]];
                 $data["customer"]["payment_source"]["address_country"] = $entry[$feed["meta"]["pd_personal_mapped_details_pd_address_country"]];
             }
-            $data["reference"] = $entry[$feed["meta"]["pd_payment_mapped_details_pd_transaction_reference"]];
-            $data["description"] = $entry[$feed["meta"]["pd_payment_mapped_details_pd_description"]];
+            if (!empty($entry[$feed["meta"]["pd_payment_mapped_details_pd_transaction_reference"]])) {
+                $data["reference"] = $entry[$feed["meta"]["pd_payment_mapped_details_pd_transaction_reference"]];
+            }
+            if (!empty($entry[$feed["meta"]["pd_payment_mapped_details_pd_description"]])) {
+                $data["description"] = $entry[$feed["meta"]["pd_payment_mapped_details_pd_description"]];
+            }
             $data["currency"] = (!empty($entry[$feed["meta"]["pd_currency"]])) ? $entry[$feed["meta"]["pd_currency"]] : GFCommon::get_currency();
 
             $pd_options = $this->get_plugin_settings();
