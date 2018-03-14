@@ -656,7 +656,7 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                 add_filter('gform_validation_message', array($this, 'change_message'), 10, 2);
                 return $auth;
             } else {
-                if (!empty($start_date) && strtotime($start_date) > time()) { // If start date in future, we don't want to process recurring transactions now
+                if (!empty($start_date) && strtotime($start_date) > current_time()) { // If start date in future, we don't want to process recurring transactions now
                     $total_amount = $transactions['one-off'];
                 }
                 if ($total_amount > 0) {
@@ -770,7 +770,7 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                     $data["schedule"]["frequency"] = $frequency;
                     $data["schedule"]["interval"] = $interval;
 
-                    if (empty($start_date)) {
+                    if (empty($start_date) || strtotime($start_date) <= current_time()) {
                         $start_date = date('Y-m-d', strtotime('+'.$frequency.' '.$interval));
                     }
                     $data["schedule"]["start_date"] = $start_date;
