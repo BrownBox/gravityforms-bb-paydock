@@ -797,17 +797,20 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
 
                     $response = json_decode($result);
 
-                    $GLOBALS['transaction_id'] = $GLOBALS['pd_error'] = "";
+                    $GLOBALS['pd_error'] = "";
 
                     if (!is_object($response) || $response->status > 201 || $response->_code > 250) {
                         $error_message = $this->get_paydock_error_message($response);
                         $this->send_subscription_failed_email($first_name, $email, $amount, $interval, $frequency, $error_message);
-                    } elseif (empty($auth)) { // We only processed a future-dated subscription
-                        $auth = array(
-                                'is_authorized' => true,
-                                'transaction_id' => $response->resource->data->_id,
-                                'amount' => 0,
-                        );
+                    } else {
+                        if (empty($auth)) { // We only processed a future-dated subscription
+                            $auth = array(
+                                    'is_authorized' => true,
+                                    'transaction_id' => $response->resource->data->_id,
+                                    'amount' => 0,
+                            );
+                        }
+                        $GLOBALS['subscription_id'] = $response->resource->data->_id;
                     }
                 }
             }
