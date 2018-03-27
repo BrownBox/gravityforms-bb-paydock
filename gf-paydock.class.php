@@ -326,7 +326,7 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
             }
 
             foreach ($fields as $key => $field) {
-                if ($field['type'] == 'product' || $field['type'] == 'total') {
+                if (in_array($field['type'], array('product', 'total', 'number'))) {
                     if ($field['type'] == 'total') {
                         $check_total_exist = 1; //total exists.
                     }
