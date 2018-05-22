@@ -74,7 +74,7 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                                 "value" => $gateway['_id']
                         );
                     }
-                } else {
+                } elseif (!empty($details['key'])) {
                     echo "There is something wrong with your ".$env." PayDock API Key. Please check your settings again or contact support.";
                 }
             }
