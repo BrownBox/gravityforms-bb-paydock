@@ -14,6 +14,8 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
 
         private $sandbox_endpoint = 'https://api-sandbox.paydock.com/v1/';
         private $production_endpoint = 'https://api.paydock.com/v1/';
+        private $gateways = array();
+        private $environments = array();
 
         private static $_instance = null;
 
@@ -33,52 +35,21 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
             add_filter('gform_replace_merge_tags', array($this, 'replace_merge_tags'), 10, 7);
             add_action('profile_update', array($this, 'update_email_address'), 10, 2);
             add_action('bbconnect_merge_users', array($this, 'update_email_address'), 10, 2);
+
+            $pd_options = $this->get_plugin_settings();
+            $this->environments['sandbox'] = array(
+                    'uri' => $this->sandbox_endpoint,
+                    'key' => $pd_options['pd_sandbox_api_key'],
+            );
+            $this->environments['production'] = array(
+                    'uri' => $this->production_endpoint,
+                    'key' => $pd_options['pd_production_api_key'],
+            );
         }
 
         public function feed_settings_fields() {
             $pd_options = $this->get_plugin_settings();
-
-            $environments = array();
-            $environments['sandbox']['uri'] = $this->sandbox_endpoint;
-            $environments['sandbox']['key'] = $pd_options['pd_sandbox_api_key'];
-
-            $environments['production']['uri'] = $this->production_endpoint;
-            $environments['production']['key'] = $pd_options['pd_production_api_key'];
-
-            $gateways_select = array();
-
-            foreach ($environments as $env => $details) { // maybe this is crap but the only two options we should ever have is 2 x API keys
-                if (strlen($details['key']) == 40) { // should be 40 character key
-                    $curl_header = array();
-                    $curl_header[] = 'x-user-token:' . $details['key'];
-                    $ch = curl_init();
-                    curl_setopt($ch, CURLOPT_URL, $details['uri'] . 'gateways/');
-                    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "GET");
-                    curl_setopt($ch, CURLOPT_HTTPHEADER, $curl_header);
-                    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true); // this one is important
-                    curl_setopt($ch, CURLOPT_HEADER, false);
-                    $result = curl_exec($ch);
-                    curl_close($ch);
-
-                    $json_string = json_decode($result, true);
-                    $gateways = $json_string['resource']['data'];
-
-                    foreach ($gateways as $gateway) {
-                        if (strpos($details['uri'], 'sandbox')) {
-                            $gateway['name'] = '[Sandbox Account Gateway] ' . $gateway['name'];
-                        } else {
-                            $gateway['name'] = '[Production Account Gateway] ' . $gateway['name'];
-                        }
-                        $gateways_select[] = array(
-                                "label" => $gateway['name'],
-                                "value" => $gateway['_id']
-                        );
-                    }
-                } elseif (!empty($details['key'])) {
-                    echo "There is something wrong with your ".$env." PayDock API Key. Please check your settings again or contact support.";
-                }
-            }
-
+            $this->load_gateways();
             return array(
                     array(
                             "title" => "Feed Settings",
@@ -95,20 +66,8 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                                             "type" => "select",
                                             "name" => "pd_select_gateway",
                                             "tooltip" => "Select which gateway you wish to push this feed to",
-                                            "choices" => $gateways_select,
+                                            "choices" => $this->gatewayOptions(),
                                             'required' => true,
-                                    ),
-                                    array(
-                                            "label" => "Send to Production",
-                                            "type" => "checkbox",
-                                            "name" => "pd_send_to_production",
-                                            "tooltip" => "Check this box to route payments to your production environment.",
-                                            "choices" => array(
-                                                    array(
-                                                            "label" => "Send payments to your PayDock Production account, otherwise we'll shoot the payments off to Sandbox (make sure you've entered your API keys).",
-                                                            "name" => "pd_send_to_production",
-                                                    ),
-                                            ),
                                     ),
                                     array(
                                             "label" => "Don't Create Subscriptions",
@@ -366,7 +325,61 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
             );
         }
 
-        //this function return products fields and total field
+        private function load_gateways() {
+            foreach ($this->environments as $env => $details) {
+                if (strlen($details['key']) == 40) {
+                    $curl_header = array();
+                    $curl_header[] = 'x-user-token:' . $details['key'];
+                    $ch = curl_init();
+                    curl_setopt($ch, CURLOPT_URL, $details['uri'] . 'gateways/');
+                    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "GET");
+                    curl_setopt($ch, CURLOPT_HTTPHEADER, $curl_header);
+                    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                    curl_setopt($ch, CURLOPT_HEADER, false);
+                    $result = curl_exec($ch);
+                    curl_close($ch);
+
+                    $json_string = json_decode($result, true);
+                    $gateways = $json_string['resource']['data'];
+
+                    foreach ($gateways as $gateway) {
+                        if ($env == 'sandbox') {
+                            $gateway['name'] = '[Sandbox Account Gateway] ' . $gateway['name'];
+                        } else {
+                            $gateway['name'] = '[Production Account Gateway] ' . $gateway['name'];
+                        }
+                        $this->gateways[$env][$gateway['_id']] = array(
+                                "label" => $gateway['name'],
+                                "value" => $gateway['_id'],
+                        );
+                    }
+                }
+            }
+        }
+
+        /**
+         * List of options for Gateway setting
+         * @return array
+         */
+        protected function gatewayOptions() {
+            $default_settings = array(
+                    array(
+                            "value" => "",
+                            "label" => "Please Select",
+                    )
+            );
+
+            foreach ($this->gateways as $end => $gateways) {
+                foreach ($gateways as $gateway) {
+                    $default_settings[] = $gateway;
+                }
+            }
+            return $default_settings;
+        }
+
+        /**
+         * Amount fields - BB Cart (if installed), plus any product fields and total fields
+         */
         protected function productFields() {
             $form = $this->get_current_form();
             $fields = $form['fields'];
@@ -408,7 +421,7 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                 }
             }
 
-            //check if field total don't exist then add it
+            // if there is no total field then add custom option
             if ($check_total_exist == 0) {
                 $field_settings = array();
                 $field_settings['value'] = 'total';
@@ -585,6 +598,7 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
         }
 
         public function authorize($feed, $submission_data, $form, $entry) {
+            $this->load_gateways();
             $data = array();
 
             $payment_type = $feed["meta"]["pd_payment_type"];
@@ -650,16 +664,16 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
 
             $pd_options = $this->get_plugin_settings();
 
-            if ($feed['meta']['pd_send_to_production'] == "1") {
+            $feed_gateway_key = $feed['meta']['pd_select_gateway'];
+            $_SESSION['PD_GATEWAY'] = $feed_gateway_key;
+
+            if (array_key_exists($feed_gateway_key, $this->gateways['production'])) {
                 $request_token = $pd_options['pd_production_api_key'];
                 $feed_uri = $this->production_endpoint;
             } else {
                 $request_token = $pd_options['pd_sandbox_api_key'];
                 $feed_uri = $this->sandbox_endpoint;
             }
-
-            $feed_gateway_key = $feed['meta']['pd_select_gateway'];
-            $_SESSION['PD_GATEWAY'] = $feed_gateway_key;
 
             $start_date = $entry[$feed["meta"]["pd_payment_start_date"]];
 
