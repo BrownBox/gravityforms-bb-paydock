@@ -81,7 +81,7 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
 
             return array(
                     array(
-                            "title" => "PayDock Feed Settings",
+                            "title" => "Feed Settings",
                             "fields" => array(
                                     array(
                                             "label" => "Feed name",
@@ -98,13 +98,6 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                                             "choices" => $gateways_select,
                                             'required' => true,
                                     ),
-//                                     array(
-//                                             "label" => "Feed Reference",
-//                                             "type" => "text",
-//                                             "name" => "pd_reference",
-//                                             "tooltip" => "Use this to add a reference to your submission.",
-//                                             "class" => "medium",
-//                                     ),
                                     array(
                                             "label" => "Send to Production",
                                             "type" => "checkbox",
@@ -129,12 +122,17 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                                                     ),
                                             ),
                                     ),
+                            ),
+                    ),
+                    array(
+                            "title" => "Transaction Details",
+                            "fields" => array(
                                     array( // Can't override choices if it's part of the field_map below
                                             "name" => "pd_total_payable",
                                             "type" => "select",
                                             "label" => "Amount",
-                                            "required" => true,
                                             "choices" => $this->productFields(),
+                                            "required" => true,
                                     ),
                                     array(
                                             "name" => "pd_currency",
@@ -146,7 +144,6 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                                             "name" => "pd_payment_type",
                                             "type" => "select",
                                             "label" => "Payment Type",
-                                            "required" => false,
                                             'choices' => array(
                                                     array(
                                                             'value' => '',
@@ -163,136 +160,200 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                                             ),
                                     ),
                                     array(
-                                            "name" => "pd_personal_mapped_details",
-                                            "label" => "Personal Details",
-                                            "type" => "field_map",
-                                            "field_map" => array(
-                                                    array(
-                                                            "name" => "pd_email",
-                                                            "label" => "Email",
-                                                            "required" => false,
-                                                    ),
-                                                    array(
-                                                            "name" => "pd_first_name",
-                                                            "label" => "First Name",
-                                                            "required" => false,
-                                                    ),
-                                                    array(
-                                                            "name" => "pd_last_name",
-                                                            "label" => "Last Name",
-                                                            "required" => false,
-                                                    ),
-                                                    array(
-                                                            "name" => "pd_phone",
-                                                            "label" => "Phone",
-                                                            "required" => false,
-                                                    ),
-                                                    array(
-                                                            "name" => "pd_address_line1",
-                                                            "label" => "Address Line 1",
-                                                            "required" => false,
-                                                    ),
-                                                    array(
-                                                            "name" => "pd_address_line2",
-                                                            "label" => "Address Line 2",
-                                                            "required" => false,
-                                                    ),
-                                                    array(
-                                                            "name" => "pd_address_city",
-                                                            "label" => "City",
-                                                            "required" => false,
-                                                    ),
-                                                    array(
-                                                            "name" => "pd_address_state",
-                                                            "label" => "State",
-                                                            "required" => false,
-                                                    ),
-                                                    array(
-                                                            "name" => "pd_address_postcode",
-                                                            "label" => "Postcode",
-                                                            "required" => false,
-                                                    ),
-                                                    array(
-                                                            "name" => "pd_address_country",
-                                                            "label" => "Country",
-                                                            "required" => false,
-                                                    ),
+                                            "name" => "pd_transaction_reference",
+                                            "label" => "Transaction Reference",
+                                            "type" => "field_select",
+                                            'args' => array(
+                                                    'input_types' => array('text', 'hidden'),
                                             ),
                                     ),
                                     array(
-                                            "name" => "pd_payment_mapped_details",
-                                            "label" => "Payment Details",
-                                            "type" => "field_map",
-                                            "field_map" => array(
-                                                    array(
-                                                            "name" => "pd_transaction_reference",
-                                                            "label" => "Transaction Reference",
-                                                            "required" => false,
-                                                    ),
-                                                    array(
-                                                            "name" => "pd_description",
-                                                            "label" => "Description",
-                                                            "required" => false,
-                                                    ),
-                                                    array(
-                                                            "name" => "pd_customer",
-                                                            "label" => "Customer",
-                                                            "required" => false,
-                                                            'tooltip' => 'Required if "Existing Payment Source" selected',
-                                                    ),
-                                                    array(
-                                                            "name" => "pd_payment_source",
-                                                            "label" => "Payment Source",
-                                                            "required" => false,
-                                                            'tooltip' => 'Only used if "Existing Payment Source" selected. If left empty, customer\'s default payment source will be used',
-                                                    ),
-                                                    array(
-                                                            "name" => "pd_account_name",
-                                                            "label" => "Account Name",
-                                                            "required" => false,
-                                                            'tooltip' => 'Required if "Direct Debit" selected',
-                                                    ),
-                                                    array(
-                                                            "name" => "pd_account_bsb",
-                                                            "label" => "Account BSB",
-                                                            "required" => false,
-                                                            'tooltip' => 'Required if "Direct Debit" selected',
-                                                    ),
-                                                    array(
-                                                            "name" => "pd_account_number",
-                                                            "label" => "Account Number",
-                                                            "required" => false,
-                                                            'tooltip' => 'Required if "Direct Debit" selected',
-                                                    ),
+                                            "name" => "pd_description",
+                                            "label" => "Description",
+                                            "type" => "field_select",
+                                            'args' => array(
+                                                    'input_types' => array('text', 'hidden'),
+                                            ),
+                                    ),
+                            ),
+                    ),
+                    array(
+                            "title" => "Payment Details",
+                            "fields" => array(
+                                    array(
+                                            "name" => "pd_customer",
+                                            "label" => "Customer",
+                                            "type" => "field_select",
+                                            'args' => array(
+                                                    'input_types' => array('text', 'hidden'),
+                                            ),
+                                            'tooltip' => 'Required if Payment Type "Existing Payment Source" selected',
+                                    ),
+                                    array(
+                                            "name" => "pd_payment_source",
+                                            "label" => "Payment Source",
+                                            "type" => "field_select",
+                                            'args' => array(
+                                                    'input_types' => array('text', 'hidden'),
+                                            ),
+                                            'tooltip' => 'Only used if Payment Type "Existing Payment Source" selected. If left empty, customer\'s default payment source will be used',
+                                    ),
+                                    array(
+                                            "name" => "pd_account_name",
+                                            "label" => "Account Name",
+                                            "type" => "field_select",
+                                            'args' => array(
+                                                    'input_types' => array('text', 'hidden'),
+                                            ),
+                                            'tooltip' => 'Required if Payment Type "Direct Debit" selected',
+                                    ),
+                                    array(
+                                            "name" => "pd_account_bsb",
+                                            "label" => "Account BSB",
+                                            "type" => "field_select",
+                                            'args' => array(
+                                                    'input_types' => array('text', 'hidden'),
+                                            ),
+                                            'tooltip' => 'Required if Payment Type "Direct Debit" selected',
+                                    ),
+                                    array(
+                                            "name" => "pd_account_number",
+                                            "label" => "Account Number",
+                                            "type" => "field_select",
+                                            'args' => array(
+                                                    'input_types' => array('text', 'hidden'),
+                                            ),
+                                            'tooltip' => 'Required if Payment Type "Direct Debit" selected',
+                                    ),
+                            ),
+                    ),
+                    array(
+                            "title" => "Payment Schedule",
+                            "fields" => array(
+                                    array(
+                                            "name" => "pd_payment_interval",
+                                            "label" => "Payment Interval",
+                                            "type" => "select",
+                                            "choices" => $this->intervalOptions(),
+                                            'tooltip' => 'Subscription interval (one-off, day, week, month or year)',
+                                    ),
+                                    array(
+                                            "name" => "pd_payment_frequency",
+                                            "label" => "Payment Frequency",
+                                            "type" => "select",
+                                            "choices" => $this->frequencyOptions(),
+                                            'tooltip' => 'Subscription frequency (every <i>n</i> intervals, e.g. every <i>3 weeks</i>',
+                                    ),
+                                    array(
+                                            "name" => "pd_payment_start_date",
+                                            "label" => "Payment Start Date",
+                                            "type" => "field_select",
+                                            'args' => array(
+                                                    'input_types' => array('date', 'hidden'),
                                             ),
                                     ),
                                     array(
-                                            "name" => "pd_payment_type_mapped_details",
-                                            "label" => "Payment Schedule",
-                                            "type" => "field_map",
-                                            "field_map" => array(
-                                                    array(
-                                                            "name" => "pd_payment_frequency",
-                                                            "label" => "Payment Frequency",
-                                                            "required" => false,
-                                                    ),
-                                                    array(
-                                                            "name" => "pd_payment_interval",
-                                                            "label" => "Payment Interval",
-                                                            "required" => false,
-                                                    ),
-                                                    array(
-                                                            "name" => "pd_payment_start_date",
-                                                            "label" => "Payment Start Date",
-                                                            "required" => false,
-                                                    ),
-                                                    array(
-                                                            "name" => "pd_payment_end_date",
-                                                            "label" => "Payment End Date",
-                                                            "required" => false,
-                                                    ),
+                                            "name" => "pd_payment_end_date",
+                                            "label" => "Payment End Date",
+                                            "type" => "field_select",
+                                            'args' => array(
+                                                    'input_types' => array('date', 'hidden'),
                                             ),
                                     ),
+                            ),
+                    ),
+                    array(
+                            "title" => "Personal Details",
+                            "fields" => array(
+                                    array(
+                                            "name" => "pd_email",
+                                            "label" => "Email",
+                                            "type" => "field_select",
+                                            'args' => array(
+                                                    'input_types' => array('email', 'hidden'),
+                                            ),
+                                            "required" => true,
+                                    ),
+                                    array(
+                                            "name" => "pd_first_name",
+                                            "label" => "First Name",
+                                            "type" => "field_select",
+                                            'args' => array(
+                                                    'input_types' => array('name', 'hidden'),
+                                            ),
+                                            "required" => true,
+                                    ),
+                                    array(
+                                            "name" => "pd_last_name",
+                                            "label" => "Last Name",
+                                            "type" => "field_select",
+                                            'args' => array(
+                                                    'input_types' => array('name', 'hidden'),
+                                            ),
+                                            "required" => true,
+                                    ),
+                                    array(
+                                            "name" => "pd_phone",
+                                            "label" => "Phone Number",
+                                            "type" => "field_select",
+                                            'args' => array(
+                                                    'input_types' => array('text', 'phone', 'hidden'),
+                                            ),
+                                    ),
+                                    array(
+                                            "name" => "pd_address_line1",
+                                            "label" => "Address Line 1",
+                                            "type" => "field_select",
+                                            'args' => array(
+                                                    'input_types' => array('address', 'hidden'),
+                                            ),
+                                    ),
+                                    array(
+                                            "name" => "pd_address_line2",
+                                            "label" => "Address Line 2",
+                                            "type" => "field_select",
+                                            'args' => array(
+                                                    'input_types' => array('address', 'hidden'),
+                                            ),
+                                    ),
+                                    array(
+                                            "name" => "pd_address_city",
+                                            "label" => "City",
+                                            "type" => "field_select",
+                                            'args' => array(
+                                                    'input_types' => array('address', 'hidden'),
+                                            ),
+                                    ),
+                                    array(
+                                            "name" => "pd_address_state",
+                                            "label" => "State",
+                                            "type" => "field_select",
+                                            'args' => array(
+                                                    'input_types' => array('address', 'hidden'),
+                                            ),
+                                    ),
+                                    array(
+                                            "name" => "pd_address_postcode",
+                                            "label" => "Postcode",
+                                            "type" => "field_select",
+                                            'args' => array(
+                                                    'input_types' => array('address', 'hidden'),
+                                            ),
+                                            "required" => false,
+                                    ),
+                                    array(
+                                            "name" => "pd_address_country",
+                                            "label" => "Country",
+                                            "type" => "field_select",
+                                            'args' => array(
+                                                    'input_types' => array('address', 'hidden'),
+                                            ),
+                                    ),
+                            ),
+                    ),
+                    array(
+                            "title" => "Conditional Logic",
+                            "fields" => array(
                                     array(
                                             "name" => "condition",
                                             "label" => __("Condition", "gravityforms-bb-paydock"),
@@ -376,6 +437,68 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                 $field_settings['value'] = $field['id'];
                 $field_settings['label'] = __($field['label'], 'gravityforms-bb-paydock');
                 array_push($default_settings, $field_settings);
+            }
+            return $default_settings;
+        }
+
+        /**
+         * List of options for Interval setting
+         * @return array
+         */
+        protected function intervalOptions() {
+            $form = $this->get_current_form();
+            $fields = $form['fields'];
+            $default_settings = array();
+
+            array_push($default_settings, array(
+                    "value" => "",
+                    "label" => "One Off",
+            ), array(
+                    "value" => "day",
+                    "label" => "Day",
+            ), array(
+                    "value" => "week",
+                    "label" => "Week",
+            ), array(
+                    "value" => "month",
+                    "label" => "Month",
+            ), array(
+                    "value" => "year",
+                    "label" => "Year",
+            ));
+
+            foreach ($fields as $key => $field) {
+                if (in_array($field->type, array('select', 'radio', 'text', 'hidden'))) {
+                    $field_settings = array();
+                    $field_settings['value'] = $field['id'];
+                    $field_settings['label'] = __($field['label'], 'gravityforms-bb-paydock');
+                    array_push($default_settings, $field_settings);
+                }
+            }
+            return $default_settings;
+        }
+
+        /**
+         * List of options for Frequency setting
+         * @return array
+         */
+        protected function frequencyOptions() {
+            $form = $this->get_current_form();
+            $fields = $form['fields'];
+            $default_settings = array();
+
+            array_push($default_settings, array(
+                    "value" => "",
+                    "label" => "1",
+            ));
+
+            foreach ($fields as $key => $field) {
+                if (in_array($field->type, array('number', 'text', 'hidden'))) {
+                    $field_settings = array();
+                    $field_settings['value'] = $field['id'];
+                    $field_settings['label'] = __($field['label'], 'gravityforms-bb-paydock');
+                    array_push($default_settings, $field_settings);
+                }
             }
             return $default_settings;
         }
@@ -466,16 +589,16 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
 
             $payment_type = $feed["meta"]["pd_payment_type"];
             if ($payment_type == 'payment_source') {
-                $data['customer_id'] = $entry[$feed["meta"]["pd_payment_mapped_details_pd_customer"]];
-                if (!empty($entry[$feed["meta"]["pd_payment_mapped_details_pd_payment_source"]])) {
-                    $data['customer']['payment_source_id'] = $entry[$feed["meta"]["pd_payment_mapped_details_pd_payment_source"]];
+                $data['customer_id'] = $entry[$feed["meta"]["pd_customer"]];
+                if (!empty($entry[$feed["meta"]["pd_payment_source"]])) {
+                    $data['customer']['payment_source_id'] = $entry[$feed["meta"]["pd_payment_source"]];
                 }
             } else {
                 if ($payment_type == "bsb") {
                     $data["customer"]["payment_source"]["type"] = "bsb";
-                    $data["customer"]["payment_source"]["account_name"] = $entry[$feed["meta"]["pd_payment_mapped_details_pd_account_name"]];
-                    $data["customer"]["payment_source"]["account_bsb"] = str_replace('-', '', $entry[$feed["meta"]["pd_payment_mapped_details_pd_account_bsb"]]);
-                    $data["customer"]["payment_source"]["account_number"] = $entry[$feed["meta"]["pd_payment_mapped_details_pd_account_number"]];
+                    $data["customer"]["payment_source"]["account_name"] = $entry[$feed["meta"]["pd_account_name"]];
+                    $data["customer"]["payment_source"]["account_bsb"] = str_replace('-', '', $entry[$feed["meta"]["pd_account_bsb"]]);
+                    $data["customer"]["payment_source"]["account_number"] = $entry[$feed["meta"]["pd_account_number"]];
                 } else {
                     $data["customer"]["payment_source"]["card_name"] = $submission_data['card_name'];
                     $data["customer"]["payment_source"]["card_number"] = $submission_data['card_number'];
@@ -491,12 +614,12 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                     $data["customer"]["payment_source"]["card_ccv"] = $submission_data['card_security_code'];
                 }
 
-                $first_name = $entry[$feed["meta"]["pd_personal_mapped_details_pd_first_name"]];
-                $last_name = $entry[$feed["meta"]["pd_personal_mapped_details_pd_last_name"]];
-                $email = strtolower(trim($entry[$feed["meta"]["pd_personal_mapped_details_pd_email"]]));
+                $first_name = $entry[$feed["meta"]["pd_first_name"]];
+                $last_name = $entry[$feed["meta"]["pd_last_name"]];
+                $email = strtolower(trim($entry[$feed["meta"]["pd_email"]]));
                 $phone = '';
-                if (!empty($entry[$feed["meta"]["pd_personal_mapped_details_pd_phone"]])) {
-                    $phone = preg_replace('/[^\+\d]/', '', $entry[$feed["meta"]["pd_personal_mapped_details_pd_phone"]]);
+                if (!empty($entry[$feed["meta"]["pd_phone"]])) {
+                    $phone = preg_replace('/[^\+\d]/', '', $entry[$feed["meta"]["pd_phone"]]);
                     if (strpos($phone, '0') === 0) {
                         $phone = substr($phone, 1);
                     }
@@ -510,18 +633,18 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                 $data["customer"]["last_name"] = $last_name;
                 $data["customer"]["email"] = $email;
                 $data["customer"]["phone"] = $phone;
-                $data["customer"]["payment_source"]["address_line1"] = $entry[$feed["meta"]["pd_personal_mapped_details_pd_address_line1"]];
-                $data["customer"]["payment_source"]["address_line2"] = $entry[$feed["meta"]["pd_personal_mapped_details_pd_address_line2"]];
-                $data["customer"]["payment_source"]["address_city"] = $entry[$feed["meta"]["pd_personal_mapped_details_pd_address_city"]];
-                $data["customer"]["payment_source"]["address_state"] = $entry[$feed["meta"]["pd_personal_mapped_details_pd_address_state"]];
-                $data["customer"]["payment_source"]["address_postcode"] = $entry[$feed["meta"]["pd_personal_mapped_details_pd_address_postcode"]];
-                $data["customer"]["payment_source"]["address_country"] = $entry[$feed["meta"]["pd_personal_mapped_details_pd_address_country"]];
+                $data["customer"]["payment_source"]["address_line1"] = $entry[$feed["meta"]["pd_address_line1"]];
+                $data["customer"]["payment_source"]["address_line2"] = $entry[$feed["meta"]["pd_address_line2"]];
+                $data["customer"]["payment_source"]["address_city"] = $entry[$feed["meta"]["pd_address_city"]];
+                $data["customer"]["payment_source"]["address_state"] = $entry[$feed["meta"]["pd_address_state"]];
+                $data["customer"]["payment_source"]["address_postcode"] = $entry[$feed["meta"]["pd_address_postcode"]];
+                $data["customer"]["payment_source"]["address_country"] = $entry[$feed["meta"]["pd_address_country"]];
             }
-            if (!empty($entry[$feed["meta"]["pd_payment_mapped_details_pd_transaction_reference"]])) {
-                $data["reference"] = $entry[$feed["meta"]["pd_payment_mapped_details_pd_transaction_reference"]];
+            if (!empty($entry[$feed["meta"]["pd_transaction_reference"]])) {
+                $data["reference"] = $entry[$feed["meta"]["pd_transaction_reference"]];
             }
-            if (!empty($entry[$feed["meta"]["pd_payment_mapped_details_pd_description"]])) {
-                $data["description"] = $entry[$feed["meta"]["pd_payment_mapped_details_pd_description"]];
+            if (!empty($entry[$feed["meta"]["pd_description"]])) {
+                $data["description"] = $entry[$feed["meta"]["pd_description"]];
             }
             $data["currency"] = (!empty($entry[$feed["meta"]["pd_currency"]])) ? $entry[$feed["meta"]["pd_currency"]] : GFCommon::get_currency();
 
@@ -538,10 +661,10 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
             $feed_gateway_key = $feed['meta']['pd_select_gateway'];
             $_SESSION['PD_GATEWAY'] = $feed_gateway_key;
 
-            $start_date = $entry[$feed["meta"]["pd_payment_type_mapped_details_pd_payment_start_date"]];
+            $start_date = $entry[$feed["meta"]["pd_payment_start_date"]];
 
             $transactions = array();
-            $interval = $entry[$feed["meta"]["pd_payment_type_mapped_details_pd_payment_interval"]];
+            $interval = is_numeric($feed["meta"]["pd_payment_interval"]) ? $entry[$feed["meta"]["pd_payment_interval"]] : $feed["meta"]["pd_payment_interval"];
             if (empty($interval)) {
                 $interval = 'one-off';
             }
@@ -760,7 +883,7 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                     // Set the right API endpoint
                     $api_url = $feed_uri . 'subscriptions/';
 
-                    $frequency = $entry[$feed["meta"]["pd_payment_type_mapped_details_pd_payment_frequency"]];
+                    $frequency = is_numeric($feed["meta"]["pd_payment_frequency"]) ? $entry[$feed["meta"]["pd_payment_frequency"]] : $feed["meta"]["pd_payment_frequency"];
                     if (empty($frequency)) {
                         $frequency = 1;
                     }
@@ -779,7 +902,7 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                     }
                     $data["schedule"]["start_date"] = $start_date;
 
-                    $end_date = $entry[$feed["meta"]["pd_payment_type_mapped_details_pd_payment_end_date"]];
+                    $end_date = $entry[$feed["meta"]["pd_payment_end_date"]];
                     if ($end_date != "") {
                         $data["schedule"]["end_date"] = $end_date;
                     }
