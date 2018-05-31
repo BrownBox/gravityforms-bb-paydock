@@ -27,7 +27,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 */
 
-define('GF_PAYDOCK_VERSION', '3.2.1');
+define('GF_PAYDOCK_VERSION', '3.3');
 
 add_action('gform_loaded', array('GF_PayDock_Launch', 'load'), 5);
 
@@ -40,7 +40,6 @@ class GF_PayDock_Launch
         }
 
         require_once('gf-paydock.class.php');
-        require_once('envoy-field-settings.php');
 
         GFAddOn::register('GFPayDock');
     }
