@@ -28,6 +28,12 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 */
 
 define('GF_PAYDOCK_VERSION', '3.3');
+define('GF_PAYDOCK_DIR', trailingslashit(dirname(__FILE__)));
+
+require_once(GF_PAYDOCK_DIR.'updates.php');
+if (is_admin()) {
+    new GfPayDockUpdates(__FILE__, 'BrownBox', 'gravityforms-bb-paydock');
+}
 
 add_action('gform_loaded', array('GF_PayDock_Launch', 'load'), 5);
 
@@ -39,7 +45,7 @@ class GF_PayDock_Launch
             return;
         }
 
-        require_once('gf-paydock.class.php');
+        require_once(GF_PAYDOCK_DIR.'gf-paydock.class.php');
 
         GFAddOn::register('GFPayDock');
     }
