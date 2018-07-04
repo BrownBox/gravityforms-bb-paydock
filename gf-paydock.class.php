@@ -797,8 +797,8 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                 add_filter('gform_validation_message', array($this, 'change_message'), 10, 2);
                 return $auth;
             } else {
-                if (!empty($start_date) && strtotime($start_date) > current_time()) { // If start date in future, we don't want to process recurring transactions now
-                    $total_amount = $transactions['one-off'];
+                if (!empty($start_date) && strtotime($start_date) > current_time()) { // If start date in future, we don't want to process anything yet
+                    $total_amount = 0;
                 }
                 if ($total_amount > 0) {
                     // Process total amount as a one-off
@@ -889,7 +889,7 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
             } else {
                 // Now we can set up subscriptions for any recurring transactions
                 foreach ($transactions as $interval => $amount) {
-                    if ($interval == 'one-off' || $amount <= 0) {
+                    if ($amount <= 0 || ($interval == 'one-off' && (empty($start_date) || strtotime($start_date) <= current_time()))) {
                         continue;
                     }
                     $data['amount'] = $amount;
@@ -902,10 +902,12 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                         $frequency = 1;
                     }
 
-                    // Hack to support fortnightly recurrence
-                    if ($interval == 'fortnight') {
+                    if ($interval == 'fortnight') { // Hack to support fortnightly recurrence
                         $interval = 'week';
                         $frequency = 2;
+                    } elseif ($interval == 'one-off') { // Hack to support future-dated one-off transactions
+                        $interval = 'month';
+                        $data['schedule']['end_transactions'] = 1;
                     }
 
                     $data["schedule"]["frequency"] = $frequency;
