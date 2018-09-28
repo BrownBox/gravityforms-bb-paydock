@@ -943,8 +943,10 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                     $GLOBALS['pd_error'] = "";
 
                     if (!is_object($response) || $response->status > 201 || $response->_code > 250) {
-                        $error_message = $this->get_paydock_error_message($response);
-                        $this->send_subscription_failed_email($first_name, $email, $amount, $interval, $frequency, $error_message);
+                        if (!empty($auth)) { // Only send notification if we have already processed something
+                            $error_message = $this->get_paydock_error_message($response);
+                            $this->send_subscription_failed_email($first_name, $email, $amount, $interval, $frequency, $error_message);
+                        }
                     } else {
                         if (empty($auth)) { // We only processed a future-dated subscription
                             $auth = array(
@@ -969,7 +971,7 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
 <p>Sincerely,<br>
 <p>$from_name</p>
 EOM;
-            wp_mail($email, 'Recurring Payment Failure', $message);
+            wp_mail($email, 'Recurring Payment Failure', $message, 'Content-type: text/html');
         }
 
         // @todo make this work
