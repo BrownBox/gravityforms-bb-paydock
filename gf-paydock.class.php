@@ -669,9 +669,11 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
 
             if (array_key_exists($feed_gateway_key, $this->gateways['production'])) {
                 $request_token = $pd_options['pd_production_api_key'];
+                $public_key = $pd_options['pd_production_public_key'];
                 $feed_uri = $this->production_endpoint;
             } else {
                 $request_token = $pd_options['pd_sandbox_api_key'];
+                $public_key = $pd_options['pd_sandbox_public_key'];
                 $feed_uri = $this->sandbox_endpoint;
             }
 
@@ -862,9 +864,18 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
 
             if ($feed['meta']['pd_dont_create_subscriptions']) {
                 // If they don't want to set up subscriptions, just generate a one-time token that can be used by the other system
-                $api_url = $feed_uri . 'payment_sources/tokens?public_key='.$pd_options['pd_production_public_key'];
+                $api_url = $feed_uri.'payment_sources/tokens?public_key='.$public_key;
 
-                $data_string = json_encode($data["customer"]["payment_source"]);
+                // We only need payment details
+                $token_data = $data["customer"]["payment_source"];
+
+                // Plus a couple of other fields
+                $token_data['first_name'] = $data["customer"]["first_name"];
+                $token_data['last_name'] = $data["customer"]["last_name"];
+                $token_data['email'] = $data["customer"]["email"];
+                $token_data['phone'] = $data["customer"]["phone"];
+
+                $data_string = json_encode($token_data);
 
                 $ch = curl_init();
                 curl_setopt($ch, CURLOPT_URL, $api_url);
@@ -872,9 +883,9 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                 curl_setopt($ch, CURLOPT_POSTFIELDS, $data_string);
                 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
                 curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-                        'x-user-token:' . $request_token,
+                        'x-user-token:'.$request_token,
                         'Content-Type: application/json',
-                        'Content-Length: ' . strlen($data_string)
+                        'Content-Length: '.strlen($data_string)
                 ));
                 $result = curl_exec($ch);
                 curl_close($ch);
