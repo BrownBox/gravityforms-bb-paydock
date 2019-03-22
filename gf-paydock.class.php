@@ -73,11 +73,23 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                                             "label" => "Don't Create Subscriptions",
                                             "type" => "checkbox",
                                             "name" => "pd_dont_create_subscriptions",
-                                            "tooltip" => "Only select this if you have an integration in place with an external system (e.g. CRM) which is going to manage recurring payments.",
+                                            "tooltip" => "Selecting this option will force the system to process all payments as one-off; no subscriptions will be created. Only select this if you have an integration in place with an external system (e.g. CRM) which is going to manage recurring payments.",
                                             "choices" => array(
                                                     array(
                                                             "label" => "Only create one-off charges in PayDock, not subscriptions.",
                                                             "name" => "pd_dont_create_subscriptions",
+                                                    ),
+                                            ),
+                                    ),
+                                    array(
+                                            "label" => "Tokenisation Only",
+                                            "type" => "checkbox",
+                                            "name" => "pd_tokenisation",
+                                            "tooltip" => "Only supported by Bambora. Selecting this option will mean that payments are not processed through PayDock at all. Instead PayDock will generate and return a token which can be used for setting up a regular payment elsewhere. Only select this if you have an integration in place with an external system (e.g. CRM) which is going to manage payment processing.",
+                                            "choices" => array(
+                                                    array(
+                                                            "label" => "Don't process payments through PayDock; only generate a token.",
+                                                            "name" => "pd_tokenisation",
                                                     ),
                                             ),
                                     ),
@@ -554,6 +566,25 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                                     ),
                             ),
                     ),
+                    array(
+                            "title" => "Bambora Tokenisation Settings",
+                            'tooltip' => 'If you are not using Bambora to generate tokens, you can ignore this section',
+                            "fields" => array(
+                                    array(
+                                            "name" => "pd_bambora_customer_storage_number",
+                                            "label" => "Customer Storage Number",
+                                            "type" => "text",
+                                            "class" => "medium"
+                                    ),
+                                    array(
+                                            "name" => "pd_bambora_tokenise_algorithm",
+                                            "label" => "Tokenising Algorithm",
+                                            "type" => "text",
+                                            "class" => "medium",
+                                            'default' => '8',
+                                    ),
+                            ),
+                    ),
             );
         }
 
@@ -618,11 +649,13 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                     $data["customer"]["payment_source"]["card_number"] = $submission_data['card_number'];
                     $ccdate_array = $submission_data['card_expiration_date'];
                     $ccdate_month = $ccdate_array[0];
-                    if (strlen($ccdate_month) < 2)
+                    if (strlen($ccdate_month) < 2) {
                         $ccdate_month = '0' . $ccdate_month;
+                    }
                     $ccdate_year = $ccdate_array[1];
-                    if (strlen($ccdate_year) > 2)
+                    if (strlen($ccdate_year) > 2) {
                         $ccdate_year = substr($ccdate_year, -2); // Only want last 2 digits
+                    }
                     $data["customer"]["payment_source"]["expire_month"] = $ccdate_month;
                     $data["customer"]["payment_source"]["expire_year"] = $ccdate_year;
                     $data["customer"]["payment_source"]["card_ccv"] = $submission_data['card_security_code'];
@@ -798,6 +831,70 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
 
                 add_filter('gform_validation_message', array($this, 'change_message'), 10, 2);
                 return $auth;
+            }
+
+            // Bambora only - tokenise-only request
+            if ($feed['meta']['pd_tokenisation']) {
+                // Send customer details with token request
+                $api_url = $feed_uri . 'customers/';
+
+                $customer = $data['customer'];
+                $customer['payment_source']['meta'] = array(
+                        'customer_storage_number' => $pd_options['pd_bambora_customer_storage_number'],
+                        'tokenise_algorithm' => $pd_options['pd_bambora_tokenise_algorithm'],
+                );
+                $data_string = json_encode($data['customer']);
+
+                $ch = curl_init();
+                curl_setopt($ch, CURLOPT_URL, $api_url);
+                curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
+                curl_setopt($ch, CURLOPT_POSTFIELDS, $data_string);
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+                        'x-user-token:' . $request_token,
+                        'Content-Type: application/json',
+                        'Content-Length: ' . strlen($data_string)
+                ));
+                $result = curl_exec($ch);
+                curl_close($ch);
+
+                $response = json_decode($result);
+
+                $GLOBALS['transaction_id'] = $GLOBALS['pd_error'] = $GLOBALS['pd_ref_token'] = "";
+
+                if (!is_object($response) || $response->status > 201 || $response->_code > 250) {
+                    $error_message = $this->get_paydock_error_message($response);
+                    $GLOBALS['pd_error'] = $error_message;
+
+                    add_filter('gform_validation_message', array($this, 'change_message'), 10, 2);
+
+                    // set the form validation to false
+                    $auth = array(
+                            'is_authorized' => false,
+                            'transaction_id' => $response->resource->data->_id,
+                            'error_message' => $error_message,
+                    );
+
+                    foreach ($form['fields'] as &$field) {
+                        if ($field->cssClass == 'pd-show-error') {
+                            $field->failed_validation = true;
+                            $field->validation_message = 'There was a problem processing your payment. Please try again or contact us.';
+                            break;
+                        }
+                    }
+                } else {
+                    $payment_source = $this->_get_default_payment_source_of_a_customer($response);
+                    $GLOBALS['pd_ref_token'] = $payment_source->ref_token;
+
+                    add_action("gform_entry_created", array($this, "paydock_post_purchase_actions"), 99, 2);
+
+                    $auth = array(
+                            'is_authorized' => true,
+                            'transaction_id' => null,
+                            'amount' => 0,
+                    );
+                }
+                return $auth;
             } else {
                 if (!empty($start_date) && strtotime($start_date) > current_time('timestamp')) { // If start date in future, we don't want to process anything yet
                     $total_amount = 0;
@@ -860,81 +957,21 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                         );
                     }
                 }
-            }
 
-            if ($feed['meta']['pd_dont_create_subscriptions']) {
-                // If they don't want to set up subscriptions, just generate a one-time token that can be used by the other system
-                $api_url = $feed_uri.'payment_sources/tokens?public_key='.$public_key;
+                if ($feed['meta']['pd_dont_create_subscriptions']) {
+                    // If they don't want to set up subscriptions, just generate a one-time token that can be used by the other system
+                    $api_url = $feed_uri.'payment_sources/tokens?public_key='.$public_key;
 
-                // We only need payment details
-                $token_data = $data["customer"]["payment_source"];
+                    // We only need payment details
+                    $token_data = $data["customer"]["payment_source"];
 
-                // Plus a couple of other fields
-                $token_data['first_name'] = $data["customer"]["first_name"];
-                $token_data['last_name'] = $data["customer"]["last_name"];
-                $token_data['email'] = $data["customer"]["email"];
-                $token_data['phone'] = $data["customer"]["phone"];
+                    // Plus a couple of other fields
+                    $token_data['first_name'] = $data["customer"]["first_name"];
+                    $token_data['last_name'] = $data["customer"]["last_name"];
+                    $token_data['email'] = $data["customer"]["email"];
+                    $token_data['phone'] = $data["customer"]["phone"];
 
-                $data_string = json_encode($token_data);
-
-                $ch = curl_init();
-                curl_setopt($ch, CURLOPT_URL, $api_url);
-                curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
-                curl_setopt($ch, CURLOPT_POSTFIELDS, $data_string);
-                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-                curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-                        'x-user-token:'.$request_token,
-                        'Content-Type: application/json',
-                        'Content-Length: '.strlen($data_string)
-                ));
-                $result = curl_exec($ch);
-                curl_close($ch);
-
-                $response = json_decode($result);
-                if (!is_object($response) || $response->status > 201 || $response->_code > 250) {
-                    $error_message = $this->get_paydock_error_message($response);
-                    $GLOBALS['pd_error'] = $error_message;
-                } else {
-                    $GLOBALS['pd_token_id'] = $response->resource->data;
-                }
-            } else {
-                // Now we can set up subscriptions for any recurring transactions
-                foreach ($transactions as $interval => $amount) {
-                    if ($amount <= 0 || ($interval == 'one-off' && (empty($start_date) || strtotime($start_date) <= current_time('timestamp')))) {
-                        continue;
-                    }
-                    $data['amount'] = $amount;
-
-                    // Set the right API endpoint
-                    $api_url = $feed_uri . 'subscriptions/';
-
-                    $frequency = is_numeric($feed["meta"]["pd_payment_frequency"]) ? $entry[$feed["meta"]["pd_payment_frequency"]] : $feed["meta"]["pd_payment_frequency"];
-                    if (empty($frequency)) {
-                        $frequency = 1;
-                    }
-
-                    if ($interval == 'fortnight') { // Hack to support fortnightly recurrence
-                        $interval = 'week';
-                        $frequency = 2;
-                    } elseif ($interval == 'one-off') { // Hack to support future-dated one-off transactions
-                        $interval = 'month';
-                        $data['schedule']['end_transactions'] = 1;
-                    }
-
-                    $data["schedule"]["frequency"] = $frequency;
-                    $data["schedule"]["interval"] = $interval;
-
-                    if (empty($start_date) || strtotime($start_date) <= current_time('timestamp')) {
-                        $start_date = date('Y-m-d', strtotime('+'.$frequency.' '.$interval));
-                    }
-                    $data["schedule"]["start_date"] = $start_date;
-
-                    $end_date = $entry[$feed["meta"]["pd_payment_end_date"]];
-                    if ($end_date != "") {
-                        $data["schedule"]["end_date"] = $end_date;
-                    }
-
-                    $data_string = json_encode($data);
+                    $data_string = json_encode($token_data);
 
                     $ch = curl_init();
                     curl_setopt($ch, CURLOPT_URL, $api_url);
@@ -942,31 +979,91 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                     curl_setopt($ch, CURLOPT_POSTFIELDS, $data_string);
                     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
                     curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-                            'x-user-token:' . $request_token,
+                            'x-user-token:'.$request_token,
                             'Content-Type: application/json',
-                            'Content-Length: ' . strlen($data_string)
+                            'Content-Length: '.strlen($data_string)
                     ));
                     $result = curl_exec($ch);
                     curl_close($ch);
 
                     $response = json_decode($result);
-
-                    $GLOBALS['pd_error'] = "";
-
                     if (!is_object($response) || $response->status > 201 || $response->_code > 250) {
-                        if (!empty($auth)) { // Only send notification if we have already processed something
-                            $error_message = $this->get_paydock_error_message($response);
-                            $this->send_subscription_failed_email($first_name, $email, $amount, $interval, $frequency, $error_message);
-                        }
+                        $error_message = $this->get_paydock_error_message($response);
+                        $GLOBALS['pd_error'] = $error_message;
                     } else {
-                        if (empty($auth)) { // We only processed a future-dated subscription
-                            $auth = array(
-                                    'is_authorized' => true,
-                                    'transaction_id' => $response->resource->data->_id,
-                                    'amount' => 0,
-                            );
+                        $GLOBALS['pd_token_id'] = $response->resource->data;
+                    }
+                } else {
+                    // Now we can set up subscriptions for any recurring transactions
+                    foreach ($transactions as $interval => $amount) {
+                        if ($amount <= 0 || ($interval == 'one-off' && (empty($start_date) || strtotime($start_date) <= current_time('timestamp')))) {
+                            continue;
                         }
-                        $GLOBALS['subscription_id'] = $response->resource->data->_id;
+                        $data['amount'] = $amount;
+
+                        // Set the right API endpoint
+                        $api_url = $feed_uri . 'subscriptions/';
+
+                        $frequency = is_numeric($feed["meta"]["pd_payment_frequency"]) ? $entry[$feed["meta"]["pd_payment_frequency"]] : $feed["meta"]["pd_payment_frequency"];
+                        if (empty($frequency)) {
+                            $frequency = 1;
+                        }
+
+                        if ($interval == 'fortnight') { // Hack to support fortnightly recurrence
+                            $interval = 'week';
+                            $frequency = 2;
+                        } elseif ($interval == 'one-off') { // Hack to support future-dated one-off transactions
+                            $interval = 'month';
+                            $data['schedule']['end_transactions'] = 1;
+                        }
+
+                        $data["schedule"]["frequency"] = $frequency;
+                        $data["schedule"]["interval"] = $interval;
+
+                        if (empty($start_date) || strtotime($start_date) <= current_time('timestamp')) {
+                            $start_date = date('Y-m-d', strtotime('+'.$frequency.' '.$interval));
+                        }
+                        $data["schedule"]["start_date"] = $start_date;
+
+                        $end_date = $entry[$feed["meta"]["pd_payment_end_date"]];
+                        if ($end_date != "") {
+                            $data["schedule"]["end_date"] = $end_date;
+                        }
+
+                        $data_string = json_encode($data);
+
+                        $ch = curl_init();
+                        curl_setopt($ch, CURLOPT_URL, $api_url);
+                        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
+                        curl_setopt($ch, CURLOPT_POSTFIELDS, $data_string);
+                        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                        curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+                                'x-user-token:' . $request_token,
+                                'Content-Type: application/json',
+                                'Content-Length: ' . strlen($data_string)
+                        ));
+                        $result = curl_exec($ch);
+                        curl_close($ch);
+
+                        $response = json_decode($result);
+
+                        $GLOBALS['pd_error'] = "";
+
+                        if (!is_object($response) || $response->status > 201 || $response->_code > 250) {
+                            if (!empty($auth)) { // Only send notification if we have already processed something
+                                $error_message = $this->get_paydock_error_message($response);
+                                $this->send_subscription_failed_email($first_name, $email, $amount, $interval, $frequency, $error_message);
+                            }
+                        } else {
+                            if (empty($auth)) { // We only processed a future-dated subscription
+                                $auth = array(
+                                        'is_authorized' => true,
+                                        'transaction_id' => $response->resource->data->_id,
+                                        'amount' => 0,
+                                );
+                            }
+                            $GLOBALS['subscription_id'] = $response->resource->data->_id;
+                        }
                     }
                 }
             }
