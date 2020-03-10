@@ -81,6 +81,22 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                                                     ),
                                             ),
                                     ),
+                            		array(
+                            				"label" => "Additional Fraud Protection",
+                            				"type" => "select",
+                            				"name" => "pd_fraud_protection",
+                            				"tooltip" => "This option will instruct PayDock to trigger your gateway's fraud protection. Only some gateways support this, and in most cases it must be configured on the gateway side first. Only enable this if you are certain the gateway is configured accordingly.",
+                            				'choices' => array(
+                            						array(
+                            								'value' => '',
+                            								'label' => 'None',
+                            						),
+                            						array(
+                            								'value' => 'fraudguard',
+                            								'label' => 'FraudGuard (SecurePay only)',
+                            						),
+                            				),
+                            		),
                                     array(
                                             "label" => "Tokenisation Only",
                                             "type" => "checkbox",
@@ -694,6 +710,14 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                 $data["description"] = $entry[$feed["meta"]["pd_description"]];
             }
             $data["currency"] = (!empty($entry[$feed["meta"]["pd_currency"]])) ? $entry[$feed["meta"]["pd_currency"]] : GFCommon::get_currency();
+
+            $fraud_protection = $feed['meta']['pd_fraud_protection'];
+            switch ($fraud_protection) {
+            	case 'fraudguard':
+            		$data['meta']['securepay_fraud_guard'] = 'true';
+            		$data['meta']['ip_address'] = GFFormsModel::get_ip();
+            		break;
+            }
 
             $pd_options = $this->get_plugin_settings();
 
