@@ -843,7 +843,7 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                         'customer_storage_number' => $pd_options['pd_bambora_customer_storage_number'],
                         'tokenise_algorithm' => $pd_options['pd_bambora_tokenise_algorithm'],
                 );
-                $data_string = json_encode($data['customer']);
+                $data_string = json_encode($customer);
 
                 $ch = curl_init();
                 curl_setopt($ch, CURLOPT_URL, $api_url);
