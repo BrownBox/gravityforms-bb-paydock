@@ -1137,7 +1137,7 @@ EOM;
         private function get_paydock_error_message($response) {
             $error_message = $error_details = '';
             if ($response == null || $response == '') {
-            	$error_message = __('An unknown error occured - no response was received from the gateway. This is probably a temporary connection issue - please try again.', 'gravityforms-bb-paydock');
+            	$error_message = __('An unknown error occured - no response was received from the gateway. Your payment may have been processed, but the gateway did not send a confirmation. We strongly recommend that you do not try again, but instead please contact us so we can check whether the payment went through successfully.', 'gravityforms-bb-paydock');
             } else {
                 if (is_string($response)) {
                     $error_message = __($response, 'gravityforms-bb-paydock');
