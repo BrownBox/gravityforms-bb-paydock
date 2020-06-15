@@ -753,9 +753,13 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                                 $transactions['one-off'] = 0;
                             }
                             foreach ($cart_items['woo'] as $product) {
-                                $product_factory = new WC_Product_Factory();
-                                $prod_obj = $product_factory->get_product($product['product_id']);
-                                $transactions['one-off'] += $prod_obj->get_price_excluding_tax($product['quantity']);
+                            	if (!empty($product['price']) && !empty($product['quantity'])) {
+                            		$transactions['one-off'] += ($product['price']*$product['quantity'])/100;
+                            	} else {
+                            		$product_factory = new WC_Product_Factory();
+                            		$prod_obj = $product_factory->get_product($product['product_id']);
+                            		$transactions['one-off'] += $prod_obj->get_price_excluding_tax($product['quantity']);
+                            	}
                             }
                             unset($cart_items['woo']);
                             $transactions['one-off'] += bb_cart_calculate_shipping();
@@ -765,7 +769,7 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                                 $transactions['one-off'] = 0;
                             }
                             foreach ($cart_items['event'] as $event) {
-                                $transactions['one-off'] += $event['booking']->booking_price;
+                            	$transactions['one-off'] += $event['price'];
                             }
                             unset($cart_items['event']);
                         }
@@ -1133,7 +1137,7 @@ EOM;
         private function get_paydock_error_message($response) {
             $error_message = $error_details = '';
             if ($response == null || $response == '') {
-                $error_message = __('An unknown error occured. No response was received from the gateway. This is probably a temporary connection issue - please try again.', 'gravityforms-bb-paydock');
+            	$error_message = __('An unknown error occured - no response was received from the gateway. This is probably a temporary connection issue - please try again.', 'gravityforms-bb-paydock');
             } else {
                 if (is_string($response)) {
                     $error_message = __($response, 'gravityforms-bb-paydock');
