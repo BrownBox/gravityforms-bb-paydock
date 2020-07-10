@@ -861,6 +861,14 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                 return $auth;
             }
 
+            // Hack to resolve floating point error in json_encode()
+            // See https://bugs.php.net/bug.php?id=72567 and https://wiki.php.net/rfc/precise_float_value
+            // Solution sourced from https://stackoverflow.com/questions/42981409/php7-1-json-encode-float-issue
+            if (version_compare(phpversion(), '7.1', '>=')) {
+            	$ini_precision = ini_get('serialize_precision');
+            	ini_set('serialize_precision', -1);
+            }
+
             // Bambora only - tokenise-only request
             if ($feed['meta']['pd_tokenisation']) {
                 // Send customer details with token request
@@ -922,6 +930,12 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                             'amount' => 0,
                     );
                 }
+
+                // Reverse hack
+                if (version_compare(phpversion(), '7.1', '>=')) {
+                	ini_set('serialize_precision', $ini_precision);
+                }
+
                 return $auth;
             } else {
                 if (!empty($start_date) && strtotime($start_date) > current_time('timestamp')) { // If start date in future, we don't want to process anything yet
@@ -971,6 +985,12 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                                 break;
                             }
                         }
+
+                        // Reverse hack
+                        if (version_compare(phpversion(), '7.1', '>=')) {
+                        	ini_set('serialize_precision', $ini_precision);
+                        }
+
                         return $auth;
                     } else {
                         $GLOBALS['transaction_id'] = $response->resource->data->_id;
@@ -1095,6 +1115,12 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                     }
                 }
             }
+
+            // Reverse hack
+            if (version_compare(phpversion(), '7.1', '>=')) {
+            	ini_set('serialize_precision', $ini_precision);
+            }
+
             return $auth;
         }
 
