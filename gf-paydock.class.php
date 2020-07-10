@@ -869,6 +869,11 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
             	ini_set('serialize_precision', -1);
             }
 
+            $auth = array(
+            		'is_authorized' => true,
+            		'transaction_id' => null,
+            		'amount' => 0,
+            );
             // Bambora only - tokenise-only request
             if ($feed['meta']['pd_tokenisation']) {
                 // Send customer details with token request
@@ -923,12 +928,6 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                     $GLOBALS['pd_ref_token'] = $payment_source->ref_token;
 
                     add_action("gform_entry_created", array($this, "paydock_post_purchase_actions"), 99, 2);
-
-                    $auth = array(
-                            'is_authorized' => true,
-                            'transaction_id' => null,
-                            'amount' => 0,
-                    );
                 }
 
                 // Reverse hack
