@@ -650,17 +650,20 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
 
             $payment_type = $feed["meta"]["pd_payment_type"];
             if ($payment_type == 'payment_source') {
+            	$this->log_debug(__METHOD__.'(): Processing existing payment source feed.');
                 $data['customer_id'] = $entry[$feed["meta"]["pd_customer"]];
                 if (!empty($entry[$feed["meta"]["pd_payment_source"]])) {
                     $data['customer']['payment_source_id'] = $entry[$feed["meta"]["pd_payment_source"]];
                 }
             } else {
-                if ($payment_type == "bsb") {
+            	if ($payment_type == "bsb") {
+            		$this->log_debug(__METHOD__.'(): Processing direct debit feed.');
                     $data["customer"]["payment_source"]["type"] = "bsb";
                     $data["customer"]["payment_source"]["account_name"] = $entry[$feed["meta"]["pd_account_name"]];
                     $data["customer"]["payment_source"]["account_bsb"] = str_replace('-', '', $entry[$feed["meta"]["pd_account_bsb"]]);
                     $data["customer"]["payment_source"]["account_number"] = $entry[$feed["meta"]["pd_account_number"]];
-                } else {
+            	} else {
+            		$this->log_debug(__METHOD__.'(): Processing credit card feed.');
                     $data["customer"]["payment_source"]["card_name"] = $submission_data['card_name'];
                     $data["customer"]["payment_source"]["card_number"] = $submission_data['card_number'];
                     $ccdate_array = $submission_data['card_expiration_date'];
@@ -718,6 +721,9 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
             		$data['meta']['ip_address'] = GFFormsModel::get_ip();
             		break;
             }
+            $cleaned_data = $data;
+            $cleaned_data['customer']['payment_source'] = 'REDACTED';
+            $this->log_debug(__METHOD__.'(): Feed Data => '.print_r($cleaned_data, true));
 
             $pd_options = $this->get_plugin_settings();
 
@@ -847,6 +853,7 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
             }
 
             $total_amount = array_sum($transactions);
+            $this->log_debug(__METHOD__.'(): Total amount => '.$total_amount);
             if ($total_amount <= 0) {
                 $error_message = 'No amounts found to process';
                 $auth = array(
@@ -876,6 +883,7 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
             );
             // Bambora only - tokenise-only request
             if ($feed['meta']['pd_tokenisation']) {
+            	$this->log_debug(__METHOD__.'(): Generating Bambora token.');
                 // Send customer details with token request
                 $api_url = $feed_uri . 'customers/';
 
@@ -904,7 +912,8 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                 $GLOBALS['transaction_id'] = $GLOBALS['pd_error'] = $GLOBALS['pd_ref_token'] = "";
 
                 if (!is_object($response) || $response->status > 201 || $response->_code > 250) {
-                    $error_message = $this->get_paydock_error_message($response);
+                	$error_message = $this->get_paydock_error_message($response);
+                	$this->log_debug(__METHOD__.'(): ERROR => '.$error_message);
                     $GLOBALS['pd_error'] = $error_message;
 
                     add_filter('gform_validation_message', array($this, 'change_message'), 10, 2);
@@ -925,6 +934,7 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                     }
                 } else {
                     $payment_source = $this->_get_default_payment_source_of_a_customer($response);
+                	$this->log_debug(__METHOD__.'(): Token generated successfully => '.$payment_source->ref_token);
                     $GLOBALS['pd_ref_token'] = $payment_source->ref_token;
 
                     add_action("gform_entry_created", array($this, "paydock_post_purchase_actions"), 99, 2);
@@ -937,10 +947,12 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
 
                 return $auth;
             } else {
-                if (!empty($start_date) && strtotime($start_date) > current_time('timestamp')) { // If start date in future, we don't want to process anything yet
+            	if (!empty($start_date) && strtotime($start_date) > current_time('timestamp')) { // If start date in future, we don't want to process anything yet
+            		$this->log_debug(__METHOD__.'(): Not processing payment as start date is in future.');
                     $total_amount = 0;
                 }
                 if ($total_amount > 0) {
+                	$this->log_debug(__METHOD__.'(): Processing initial payment.');
                     // Process total amount as a one-off
                     $api_url = $feed_uri . 'charges/';
                     $data['amount'] = $total_amount;
@@ -965,7 +977,8 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                     $GLOBALS['transaction_id'] = $GLOBALS['pd_error'] = "";
 
                     if (!is_object($response) || $response->status > 201 || $response->_code > 250) {
-                        $error_message = $this->get_paydock_error_message($response);
+                    	$error_message = $this->get_paydock_error_message($response);
+                    	$this->log_debug(__METHOD__.'(): ERROR => '.$error_message);
                         $GLOBALS['pd_error'] = $error_message;
 
                         add_filter('gform_validation_message', array($this, 'change_message'), 10, 2);
@@ -992,6 +1005,7 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
 
                         return $auth;
                     } else {
+                    	$this->log_debug(__METHOD__.'(): Transaction processed successfully => '.$response->resource->data->_id);
                         $GLOBALS['transaction_id'] = $response->resource->data->_id;
                         $GLOBALS['gateway_transaction_id'] = $response->resource->data->external_id;
 
@@ -1006,6 +1020,7 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                 }
 
                 if ($feed['meta']['pd_dont_create_subscriptions']) {
+                	$this->log_debug(__METHOD__.'(): Generating one-time token.');
                     // If they don't want to set up subscriptions, just generate a one-time token that can be used by the other system
                     $api_url = $feed_uri.'payment_sources/tokens?public_key='.$public_key;
 
@@ -1035,9 +1050,11 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
 
                     $response = json_decode($result);
                     if (!is_object($response) || $response->status > 201 || $response->_code > 250) {
+                    	$this->log_debug(__METHOD__.'(): ERROR => '.$error_message);
                         $error_message = $this->get_paydock_error_message($response);
                         $GLOBALS['pd_error'] = $error_message;
                     } else {
+                    	$this->log_debug(__METHOD__.'(): Token generated successfully => '.$response->resource->data);
                         $GLOBALS['pd_token_id'] = $response->resource->data;
                     }
                 } else {
@@ -1070,6 +1087,7 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                         if (empty($start_date) || strtotime($start_date) <= current_time('timestamp')) {
                             $start_date = date('Y-m-d', strtotime('+'.$frequency.' '.$interval));
                         }
+                        $this->log_debug(__METHOD__.'(): Creating subscription for '.$amount.' every '.$frequency.' '.$interval.'(s) starting on '.$start_date.'.');
                         $data["schedule"]["start_date"] = $start_date;
 
                         $end_date = $entry[$feed["meta"]["pd_payment_end_date"]];
@@ -1097,11 +1115,13 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                         $GLOBALS['pd_error'] = "";
 
                         if (!is_object($response) || $response->status > 201 || $response->_code > 250) {
-                            if (!empty($auth)) { // Only send notification if we have already processed something
-                                $error_message = $this->get_paydock_error_message($response);
+                            $error_message = $this->get_paydock_error_message($response);
+                        	$this->log_debug(__METHOD__.'(): ERROR => '.$error_message);
+                        	if (!empty($auth)) { // Only send notification if we have already processed something
                                 $this->send_subscription_failed_email($first_name, $email, $amount, $interval, $frequency, $error_message);
                             }
                         } else {
+                        	$this->log_debug(__METHOD__.'(): Subscription created successfully => '.$response->resource->data->_id);
                             if (empty($auth)) { // We only processed a future-dated subscription
                                 $auth = array(
                                         'is_authorized' => true,
