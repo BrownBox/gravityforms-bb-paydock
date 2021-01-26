@@ -800,7 +800,7 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                     }
                 }
             } elseif ($amount_field == 'total') {
-                foreach ($form["fields"] as $key => $field) {
+                foreach ($form["fields"] as $field) {
                     if ($field['type'] == 'product') {
                         switch ($field['inputType']) {
                             case 'singleproduct':
@@ -832,7 +832,7 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                     }
                 }
             } else {
-                foreach ($form["fields"] as $key => $field) {
+                foreach ($form["fields"] as $field) {
                     if ($field->id == $amount_field) {
                         if ($field->type == 'product') {
                             switch ($field->inputType) {
@@ -875,6 +875,8 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
             	$ini_precision = ini_get('serialize_precision');
             	ini_set('serialize_precision', -1);
             }
+
+            $today_time = strtotime(date('Y-m-d', current_time('timestamp')));
 
             $auth = array(
             		'is_authorized' => true,
@@ -947,7 +949,7 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
 
                 return $auth;
             } else {
-            	if (!empty($start_date) && strtotime($start_date) > current_time('timestamp')) { // If start date in future, we don't want to process anything yet
+            	if (!empty($start_date) && strtotime($start_date) > $today_time) { // If start date in future, we don't want to process anything yet
             		$this->log_debug(__METHOD__.'(): Not processing payment as start date is in future.');
                     $total_amount = 0;
                 }
@@ -1060,7 +1062,7 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                 } else {
                     // Now we can set up subscriptions for any recurring transactions
                     foreach ($transactions as $interval => $amount) {
-                        if ($amount <= 0 || ($interval == 'one-off' && (empty($start_date) || strtotime($start_date) <= current_time('timestamp')))) {
+                    	if ($amount <= 0 || ($interval == 'one-off' && (empty($start_date) || strtotime($start_date) <= $today_time))) {
                             continue;
                         }
                         $data['amount'] = $amount;
@@ -1084,8 +1086,12 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                         $data["schedule"]["frequency"] = $frequency;
                         $data["schedule"]["interval"] = $interval;
 
-                        if (empty($start_date) || strtotime($start_date) <= current_time('timestamp')) {
-                            $start_date = date('Y-m-d', strtotime('+'.$frequency.' '.$interval));
+                        if (empty($start_date)) {
+                        	$start_date = date('Y-m-d', strtotime('+'.$frequency.' '.$interval));
+                        } else {
+                        	while (strtotime($start_date) <= $today_time) {
+                        		$start_date = date('Y-m-d', strtotime('+'.$frequency.' '.$interval, strtotime($start_date)));
+                        	}
                         }
                         $this->log_debug(__METHOD__.'(): Creating subscription for '.$amount.' every '.$frequency.' '.$interval.'(s) starting on '.$start_date.'.');
                         $data["schedule"]["start_date"] = $start_date;
@@ -1122,14 +1128,33 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                             }
                         } else {
                         	$this->log_debug(__METHOD__.'(): Subscription created successfully => '.$response->resource->data->_id);
-                            if (empty($auth)) { // We only processed a future-dated subscription
-                                $auth = array(
-                                        'is_authorized' => true,
-                                        'transaction_id' => $response->resource->data->_id,
-                                        'amount' => 0,
-                                );
-                            }
-                            $GLOBALS['subscription_id'] = $response->resource->data->_id;
+                        	if (!empty($auth)) { // Connect initial payment to subscription
+                        		/* @todo this won't work without linking the one-off payment to a customer record
+                        		 $api_url = $feed_uri.'charges/'.$auth['transaction_id'];
+                        		 $data = array(
+                        		 'subscription_id' => $response->resource->data->_id,
+                        		 );
+                        		 $data_string = json_encode($data);
+                        		 $ch = curl_init();
+                        		 curl_setopt($ch, CURLOPT_URL, $api_url);
+                        		 curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
+                        		 curl_setopt($ch, CURLOPT_POSTFIELDS, $data_string);
+                        		 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                        		 curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+                        		 'x-user-token:'.$request_token,
+                        		 'Content-Type: application/json',
+                        		 'Content-Length: '.strlen($data_string),
+                        		 ));
+                        		 $result = curl_exec($ch);
+                        		 curl_close($ch);*/
+                        	} else { // We only processed a future-dated subscription, return result
+                        		$auth = array(
+                        				'is_authorized' => true,
+                        				'transaction_id' => $response->resource->data->_id,
+                        				'amount' => 0,
+                        		);
+                        	}
+                        	$GLOBALS['subscription_id'] = $response->resource->data->_id;
                         }
                     }
                 }
