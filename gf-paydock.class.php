@@ -1528,7 +1528,15 @@ EOM;
             $result = curl_exec($ch);
             curl_close($ch);
 
-            return json_decode($result);
+            // [MP 2021-04-29] Hack to work around issue with PayDock returning all customers instead of only those who match the search query
+            $customers = json_decode($result);
+            foreach ($customers->resource->data as $c => $customer) {
+            	if ($customer->email != $email) {
+            		unset($customers->resource->data[$c]);
+            	}
+            }
+
+            return $customers;
         }
 
         public function get_customer($customer_id, $production = false) {
