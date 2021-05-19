@@ -28,7 +28,6 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
         }
 
         public function init() {
-            parent::init();
             add_filter("gform_field_value_feed_reference", array($this, "generate_random_number"));
             add_filter("gform_field_value_main_reference", array($this, "generate_random_main_number"));
             add_action('gform_admin_pre_render', array($this, 'add_merge_tags'));
@@ -45,6 +44,8 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                     'uri' => $this->production_endpoint,
                     'key' => $pd_options['pd_production_api_key'],
             );
+
+            parent::init();
         }
 
         public function feed_settings_fields() {
