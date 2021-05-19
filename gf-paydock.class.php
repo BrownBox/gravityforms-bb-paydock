@@ -249,95 +249,95 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                                     ),
                             ),
                     ),
-                    array(
-                            "title" => "Personal Details",
-                            "fields" => array(
-                                    array(
-                                            "name" => "pd_email",
-                                            "label" => "Email",
-                                            "type" => "field_select",
-                                            'args' => array(
-                                                    'input_types' => array('email', 'hidden'),
-                                            ),
-                                            "required" => true,
-                                    ),
-                                    array(
-                                            "name" => "pd_first_name",
-                                            "label" => "First Name",
-                                            "type" => "field_select",
-                                            'args' => array(
-                                                    'input_types' => array('name', 'hidden'),
-                                            ),
-                                            "required" => true,
-                                    ),
-                                    array(
-                                            "name" => "pd_last_name",
-                                            "label" => "Last Name",
-                                            "type" => "field_select",
-                                            'args' => array(
-                                                    'input_types' => array('name', 'hidden'),
-                                            ),
-                                            "required" => true,
-                                    ),
-                                    array(
-                                            "name" => "pd_phone",
-                                            "label" => "Phone Number",
-                                            "type" => "field_select",
-                                            'args' => array(
-                                                    'input_types' => array('text', 'phone', 'hidden'),
-                                            ),
-                                    ),
-                                    array(
-                                            "name" => "pd_address_line1",
-                                            "label" => "Address Line 1",
-                                            "type" => "field_select",
-                                            'args' => array(
-                                                    'input_types' => array('address', 'hidden'),
-                                            ),
-                                    ),
-                                    array(
-                                            "name" => "pd_address_line2",
-                                            "label" => "Address Line 2",
-                                            "type" => "field_select",
-                                            'args' => array(
-                                                    'input_types' => array('address', 'hidden'),
-                                            ),
-                                    ),
-                                    array(
-                                            "name" => "pd_address_city",
-                                            "label" => "City",
-                                            "type" => "field_select",
-                                            'args' => array(
-                                                    'input_types' => array('address', 'hidden'),
-                                            ),
-                                    ),
-                                    array(
-                                            "name" => "pd_address_state",
-                                            "label" => "State",
-                                            "type" => "field_select",
-                                            'args' => array(
-                                                    'input_types' => array('address', 'hidden'),
-                                            ),
-                                    ),
-                                    array(
-                                            "name" => "pd_address_postcode",
-                                            "label" => "Postcode",
-                                            "type" => "field_select",
-                                            'args' => array(
-                                                    'input_types' => array('address', 'hidden'),
-                                            ),
-                                            "required" => false,
-                                    ),
-                                    array(
-                                            "name" => "pd_address_country",
-                                            "label" => "Country",
-                                            "type" => "field_select",
-                                            'args' => array(
-                                                    'input_types' => array('address', 'hidden'),
-                                            ),
-                                    ),
-                            ),
-                    ),
+            		array(
+            				"title" => "Personal Details",
+            				"fields" => array(
+            						array(
+            								"name" => "pd_email",
+            								"label" => "Email",
+            								"type" => "field_select",
+            								'args' => array(
+            										'input_types' => array('email', 'hidden'),
+            								),
+            								"required" => true,
+            						),
+            						array(
+            								"name" => "pd_first_name",
+            								"label" => "First Name",
+            								"type" => "field_select",
+            								'args' => array(
+            										'input_types' => array('text', 'name', 'hidden'),
+            								),
+            								"required" => true,
+            						),
+            						array(
+            								"name" => "pd_last_name",
+            								"label" => "Last Name",
+            								"type" => "field_select",
+            								'args' => array(
+            										'input_types' => array('text', 'name', 'hidden'),
+            								),
+            								"required" => true,
+            						),
+            						array(
+            								"name" => "pd_phone",
+            								"label" => "Phone Number",
+            								"type" => "field_select",
+            								'args' => array(
+            										'input_types' => array('text', 'phone', 'hidden'),
+            								),
+            						),
+            						array(
+            								"name" => "pd_address_line1",
+            								"label" => "Address Line 1",
+            								"type" => "field_select",
+            								'args' => array(
+            										'input_types' => array('text', 'address', 'hidden'),
+            								),
+            						),
+            						array(
+            								"name" => "pd_address_line2",
+            								"label" => "Address Line 2",
+            								"type" => "field_select",
+            								'args' => array(
+            										'input_types' => array('text', 'address', 'hidden'),
+            								),
+            						),
+            						array(
+            								"name" => "pd_address_city",
+            								"label" => "City",
+            								"type" => "field_select",
+            								'args' => array(
+            										'input_types' => array('text', 'address', 'hidden'),
+            								),
+            						),
+            						array(
+            								"name" => "pd_address_state",
+            								"label" => "State",
+            								"type" => "field_select",
+            								'args' => array(
+            										'input_types' => array('text', 'address', 'hidden'),
+            								),
+            						),
+            						array(
+            								"name" => "pd_address_postcode",
+            								"label" => "Postcode",
+            								"type" => "field_select",
+            								'args' => array(
+            										'input_types' => array('text', 'address', 'hidden'),
+            								),
+            								"required" => false,
+            						),
+            						array(
+            								"name" => "pd_address_country",
+            								"label" => "Country",
+            								"type" => "field_select",
+            								'args' => array(
+            										'input_types' => array('text', 'address', 'hidden'),
+            								),
+            						),
+            				),
+            		),
                     array(
                             "title" => "Conditional Logic",
                             "fields" => array(
