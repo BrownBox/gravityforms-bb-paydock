@@ -1362,27 +1362,19 @@ EOM;
         }
 
         public function get_subscriptions_by_email($email, $production = false) {
-            $pd_options = $this->get_plugin_settings();
-            if ($production) {
-                $request_token = $pd_options['pd_production_api_key'];
-                $feed_uri = $this->production_endpoint;
-            } else {
-                $request_token = $pd_options['pd_sandbox_api_key'];
-                $feed_uri = $this->sandbox_endpoint;
-            }
+        	$customers = $this->get_customers_by_email($email, $production);
+        	$customer_subscriptions = array();
+        	foreach ($customers->resource->data as $customer) {
+        		$subscriptions = $this->get_subscriptions_by_customer($customer->_id, $production);
+        		if ($subscriptions->status != 200) {
+        			return false;
+        		}
+        		foreach ($subscriptions->resource->data as $subscription) {
+        			$customer_subscriptions[] = $subscription;
+        		}
+        	}
 
-            $ch = curl_init();
-            curl_setopt($ch, CURLOPT_URL, $feed_uri.'subscriptions/?status=active&search='.urlencode($email));
-            curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "GET");
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-                    'x-user-token:' . $request_token,
-                    'Content-Type: application/json',
-            ));
-            $result = curl_exec($ch);
-            curl_close($ch);
-
-            return json_decode($result);
+        	return $customer_subscriptions;
         }
 
         public function update_subscription($sub_id, array $data, $production = false) {
@@ -1519,7 +1511,7 @@ EOM;
             }
 
             $ch = curl_init();
-            curl_setopt($ch, CURLOPT_URL, $feed_uri.'customers/?search='.urlencode($email));
+            curl_setopt($ch, CURLOPT_URL, $feed_uri.'customers/?email='.urlencode($email));
             curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "GET");
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
             curl_setopt($ch, CURLOPT_HTTPHEADER, array(
@@ -1529,15 +1521,7 @@ EOM;
             $result = curl_exec($ch);
             curl_close($ch);
 
-            // [MP 2021-04-29] Hack to work around issue with PayDock returning all customers instead of only those who match the search query
-            $customers = json_decode($result);
-            foreach ($customers->resource->data as $c => $customer) {
-            	if ($customer->email != $email) {
-            		unset($customers->resource->data[$c]);
-            	}
-            }
-
-            return $customers;
+            return json_decode($result);
         }
 
         public function get_customer($customer_id, $production = false) {
@@ -1580,8 +1564,10 @@ EOM;
                 foreach ($env as $production) {
                     $customers = $this->get_customers_by_email($old_email, $production);
                     foreach ($customers->resource->data as $customer) {
-                        $data = array('email' => $new_email);
-                        $this->update_customer($customer->_id, $data, $production);
+                    	if ($customer->email == $old_email) {
+	                        $data = array('email' => $new_email);
+	                        $this->update_customer($customer->_id, $data, $production);
+                    	}
                     }
                 }
             }
