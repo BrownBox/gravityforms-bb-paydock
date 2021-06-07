@@ -1,17 +1,15 @@
 <?php
 /*
-Plugin Name: Gravity Forms Brown Box PayDock Add-On
-Plugin URI: http://brownbox.net.au/
+Plugin Name: Gravity Forms PayDock Add-On
+Author URI: https://sparkweb.com.au/
 Description: Integrates Gravity Forms with <a href="https://paydock.com/">PayDock</a>, enabling end users to purchase goods and services through Gravity Forms.
-Version: 3.5.2
-Author: Brown Box
-Author URI: http://brownbox.net.au/
+Version: 3.5.3
+Author: Spark Web Solutions
+Author URI: https://sparkweb.com.au/
 Text Domain: gravityforms-bb-paydock
 Domain Path: /languages
 
 ------------------------------------------------------------------------
-Copyright Brown Box
-
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation; either version 2 of the License, or
@@ -27,7 +25,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 */
 
-define('GF_PAYDOCK_VERSION', '3.5.2');
+define('GF_PAYDOCK_VERSION', '3.5.3');
 define('GF_PAYDOCK_DIR', trailingslashit(dirname(__FILE__)));
 
 require_once(GF_PAYDOCK_DIR.'updates.php');
