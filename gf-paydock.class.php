@@ -407,6 +407,17 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
         }
 
         /**
+         * List of gateways
+         * @return array
+         */
+        public function get_gateways() {
+        	if (empty($this->gateways)) {
+        		$this->load_gateways();
+        	}
+        	return $this->gateways;
+        }
+
+        /**
          * Amount fields - BB Cart (if installed), plus any product fields and total fields
          */
         protected function productFields() {
