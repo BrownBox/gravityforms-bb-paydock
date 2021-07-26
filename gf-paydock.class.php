@@ -248,6 +248,13 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                                                     'input_types' => array('date', 'hidden'),
                                             ),
                                     ),
+                            		array(
+                            				"name" => "pd_max_payments",
+                            				"label" => "Maximum Payments",
+                            				"type" => "select",
+                            				"choices" => $this->max_payments_options(),
+                            				'tooltip' => 'Maximum number of payments for subscriptions. Once this number is reached the subscription will be automatically marked as complete.',
+                            		),
                             ),
                     ),
             		array(
@@ -556,6 +563,31 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
             return $default_settings;
         }
 
+        /**
+         * List of options for Max Payments setting
+         * @return array
+         */
+        protected function max_payments_options() {
+        	$form = $this->get_current_form();
+        	$fields = $form['fields'];
+        	$default_settings = array();
+
+        	array_push($default_settings, array(
+        			"value" => "",
+        			"label" => "Select a Field",
+        	));
+
+        	foreach ($fields as $key => $field) {
+        		if (in_array($field->type, array('number', 'text', 'hidden'))) {
+        			$field_settings = array();
+        			$field_settings['value'] = $field['id'];
+        			$field_settings['label'] = __($field['label'], 'gravityforms-bb-paydock');
+        			array_push($default_settings, $field_settings);
+        		}
+        	}
+        	return $default_settings;
+        }
+
         public function plugin_settings_fields() {
             return array(
                     array(
@@ -753,6 +785,7 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
             }
 
             $start_date = $entry[$feed["meta"]["pd_payment_start_date"]];
+            $max_payments = $entry[$feed["meta"]["pd_max_payments"]];
 
             $transactions = array();
             $interval = is_numeric($feed["meta"]["pd_payment_interval"]) ? $entry[$feed["meta"]["pd_payment_interval"]] : $feed["meta"]["pd_payment_interval"];
@@ -1074,7 +1107,7 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                 } else {
                     // Now we can set up subscriptions for any recurring transactions
                     foreach ($transactions as $interval => $amount) {
-                    	if ($amount <= 0 || ($interval == 'one-off' && (empty($start_date) || strtotime($start_date) <= $today_time))) {
+                    	if ($amount <= 0 || ($interval == 'one-off' && (empty($start_date) || strtotime($start_date) <= $today_time)) || 1 == $max_payments) {
                             continue;
                         }
                         $data['amount'] = $amount;
