@@ -654,6 +654,18 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
             );
         }
 
+        /**
+         * {@inheritDoc}
+         * @see GFPaymentAddOn::get_payment_field()
+         */
+        public function get_payment_field($feed) {
+        	$field = rgars($feed, 'meta/pd_total_payable', 'form_total');
+        	if ($field == 'total') {
+        		$field = 'form_total';
+        	}
+        	return $field;
+        }
+
         public function get_submission_data($feed, $form, $entry) {
             $form_data = array();
 
@@ -1151,13 +1163,32 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
 
                         if (!is_object($response) || $response->status > 201 || $response->_code > 250) {
                             $error_message = $this->get_paydock_error_message($response);
-                        	$this->log_debug(__METHOD__.'(): ERROR => '.$error_message);
-                        	if (!empty($auth)) { // Only send notification if we have already processed something
+                            $this->log_debug(__METHOD__.'(): ERROR => '.$error_message);
+
+                        	if (!empty($auth['amount'])) { // If we have already processed something just send a notification
                                 $this->send_subscription_failed_email($first_name, $email, $amount, $interval, $frequency, $error_message);
-                            }
+                        	} else { // Otherwise flag the submission as failed
+                        		$GLOBALS['pd_error'] = $error_message;
+                        		add_filter('gform_validation_message', array($this, 'change_message'), 10, 2);
+
+                        		// Set the form validation to false
+                        		$auth = array(
+                        				'is_authorized' => false,
+                        				'transaction_id' => $response->resource->data->_id,
+                        				'error_message' => $error_message,
+                        		);
+
+                        		foreach ($form['fields'] as &$field) {
+                        			if ($field->cssClass == 'pd-show-error') {
+                        				$field->failed_validation = true;
+                        				$field->validation_message = 'There was a problem scheduling your payment. Please try again or contact us.';
+                        				break;
+                        			}
+                        		}
+                        	}
                         } else {
                         	$this->log_debug(__METHOD__.'(): Subscription created successfully => '.$response->resource->data->_id);
-                        	if (!empty($auth)) { // Connect initial payment to subscription
+                        	if (!empty($auth['amount'])) { // Connect initial payment to subscription
                         		/* @todo this won't work without linking the one-off payment to a customer record
                         		 $api_url = $feed_uri.'charges/'.$auth['transaction_id'];
                         		 $data = array(
