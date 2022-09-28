@@ -3,7 +3,7 @@
 Plugin Name: Gravity Forms PayDock Add-On
 Author URI: https://sparkweb.com.au/
 Description: Integrates Gravity Forms with <a href="https://paydock.com/">PayDock</a>, enabling end users to purchase goods and services through Gravity Forms.
-Version: 3.5.3
+Version: 3.5.4
 Author: Spark Web Solutions
 Author URI: https://sparkweb.com.au/
 Text Domain: gravityforms-bb-paydock
@@ -25,7 +25,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 */
 
-define('GF_PAYDOCK_VERSION', '3.5.3');
+define('GF_PAYDOCK_VERSION', '3.5.4');
 define('GF_PAYDOCK_DIR', trailingslashit(dirname(__FILE__)));
 
 require_once(GF_PAYDOCK_DIR.'updates.php');
