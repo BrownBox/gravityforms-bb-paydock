@@ -844,53 +844,37 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                         }
                     }
                 }
-            } elseif ($amount_field == 'total') {
-                foreach ($form["fields"] as $field) {
-                    if ($field['type'] == 'product') {
-                        switch ($field['inputType']) {
-                            case 'singleproduct':
-                                $amount = $this->clean_amount($entry[$field['id'].'.2'])/100;
-                                break;
-                            default:
-                                $amount = $this->clean_amount($entry[$field['id']])/100;
-                                break;
-                        }
-                        if (!isset($transactions[$interval])) {
-                            $transactions[$interval] = 0;
-                        }
-                        $transactions[$interval] += $amount;
-                    } elseif ($field['type'] == 'envoyrecharge') {
-                        if (rgpost('input_' . $field['id'].'_5') == 'recurring') {
-                            $ech_interval = rgpost('input_' . $field['id'].'.2');
-                        } else {
-                            $ech_interval = $interval;
-                        }
-                        if (!isset($transactions[$ech_interval])) {
-                            $transactions[$ech_interval] = 0;
-                        }
-                        $transactions[$ech_interval] += $this->clean_amount($entry[$field['id'].'.1'])/100;
-                    } elseif ($field['type'] == 'bb_click_array') {
-                        if (!isset($transactions[$interval])) {
-                            $transactions[$interval] = 0;
-                        }
-                        $transactions[$interval] += $this->clean_amount($entry[$field['id'].'.1'])/100;
-                    }
-                }
+            } elseif (in_array($amount_field, array('total', 'form_total'))) {
+            	// Get total of product fields
+            	$order_data = $this->get_order_data($feed, $form, $entry);
+            	$transactions[$interval] = $order_data['payment_amount'];
+            	// Have to manually add click array values as GF doesn't know about them
+            	foreach ($form["fields"] as $field) {
+            		if ($field['type'] == 'envoyrecharge') {
+            			if (rgpost('input_' . $field['id'].'_5') == 'recurring') {
+            				$ech_interval = rgpost('input_' . $field['id'].'.2');
+            			} else {
+            				$ech_interval = $interval;
+            			}
+            			if (!isset($transactions[$ech_interval])) {
+            				$transactions[$ech_interval] = 0;
+            			}
+            			$transactions[$ech_interval] += $this->clean_amount($entry[$field['id'].'.1'], $data["currency"]);
+            		} elseif ('bb_click_array' == $field['type']) {
+            			if (!isset($transactions[$interval])) {
+            				$transactions[$interval] = 0;
+            			}
+            			$transactions[$interval] += $this->clean_amount($entry[$field['id'].'.1'], $data["currency"]);
+            		}
+            	}
             } else {
                 foreach ($form["fields"] as $field) {
                     if ($field->id == $amount_field) {
-                        if ($field->type == 'product') {
-                            switch ($field->inputType) {
-                                case 'singleproduct':
-                                case 'hiddenproduct':
-                                    $transactions[$interval] = $this->clean_amount($entry[$amount_field.'.2'])/100;
-                                    break;
-                                default:
-                                    $transactions[$interval] = $this->clean_amount($entry[$amount_field])/100;
-                                    break;
-                            }
+                    	if ($field->type == 'product') {
+                    		$order_data = $this->get_order_data($feed, $form, $entry);
+                    		$transactions[$interval] = $order_data['payment_amount'];
                         } else {
-                            $transactions[$interval] = $this->clean_amount($entry[$amount_field])/100;
+                        	$transactions[$interval] = $this->clean_amount($entry[$amount_field], $data["currency"]);
                         }
                         break;
                     }
@@ -1276,24 +1260,16 @@ EOM;
             return $error_message;
         }
 
-        // THIS IS OUR FUNCTION FOR CLEANING UP THE PRICING AMOUNTS THAT GF SPITS OUT
-        public function clean_amount($entry) {
-            $entry = preg_replace("/\|(.*)/", '', $entry); // replace everything from the pipe symbol forward
-            if (strpos($entry, '.') === false) {
-                $entry .= ".00";
-            }
-            if (strpos($entry, '$') !== false) {
-                $startsAt = strpos($entry, "$") + strlen("$");
-                $endsAt = strlen($entry);
-                $amount = substr($entry, 0, $endsAt);
-                $amount = preg_replace("/[^0-9.]/", "", $amount);
-            } else {
-                $amount = preg_replace("/[^0-9.]/", "", $entry);
-                $amount = sprintf("%.2f", $amount);
-            }
-
-            $amount = str_replace('.', '', $amount);
-            return $amount;
+        /**
+         * Convert currency amount to a clean number
+         * @param string $amount
+         * @param string $currency_code
+         * @return number|boolean
+         * @since 1.0.0
+         */
+        public function clean_amount($amount, $currency_code = '') {
+        	$amount = preg_replace("/\|(.*)/", '', $amount); // replace everything from the pipe symbol forward
+        	return GFCommon::to_number($amount, $currency_code);
         }
 
         public function generate_random_number($value) {
