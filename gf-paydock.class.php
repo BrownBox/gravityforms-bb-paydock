@@ -720,6 +720,7 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                     $data["customer"]["payment_source"]["account_number"] = $entry[$feed["meta"]["pd_account_number"]];
             	} else {
             		$this->log_debug(__METHOD__.'(): Processing credit card feed.');
+            		$data["customer"]["payment_source"]["type"] = "card";
                     $data["customer"]["payment_source"]["card_name"] = $submission_data['card_name'];
                     $data["customer"]["payment_source"]["card_number"] = $submission_data['card_number'];
                     $ccdate_array = $submission_data['card_expiration_date'];
