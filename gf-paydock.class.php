@@ -740,6 +740,10 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                 $first_name = $entry[$feed["meta"]["pd_first_name"]];
                 $last_name = $entry[$feed["meta"]["pd_last_name"]];
                 $email = strtolower(trim($entry[$feed["meta"]["pd_email"]]));
+                $data["customer"]["first_name"] = $first_name;
+                $data["customer"]["last_name"] = $last_name;
+                $data["customer"]["email"] = $email;
+
                 $phone = '';
                 if (!empty($entry[$feed["meta"]["pd_phone"]])) {
                     $phone = preg_replace('/[^\+\d]/', '', $entry[$feed["meta"]["pd_phone"]]);
@@ -750,18 +754,29 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                         $phone = '+61'.$phone;
                     }
                 }
+                if (!empty($phone)) {
+	                $data["customer"]["phone"] = $phone;
+                }
 
                 $data["customer"]["payment_source"]["gateway_id"] = $feed["meta"]["pd_select_gateway"];
-                $data["customer"]["first_name"] = $first_name;
-                $data["customer"]["last_name"] = $last_name;
-                $data["customer"]["email"] = $email;
-                $data["customer"]["phone"] = $phone;
-                $data["customer"]["payment_source"]["address_line1"] = $entry[$feed["meta"]["pd_address_line1"]];
-                $data["customer"]["payment_source"]["address_line2"] = $entry[$feed["meta"]["pd_address_line2"]];
-                $data["customer"]["payment_source"]["address_city"] = $entry[$feed["meta"]["pd_address_city"]];
-                $data["customer"]["payment_source"]["address_state"] = $entry[$feed["meta"]["pd_address_state"]];
-                $data["customer"]["payment_source"]["address_postcode"] = $entry[$feed["meta"]["pd_address_postcode"]];
-                $data["customer"]["payment_source"]["address_country"] = $entry[$feed["meta"]["pd_address_country"]];
+                if (!empty($entry[$feed["meta"]["pd_address_line1"]])) {
+                	$data["customer"]["payment_source"]["address_line1"] = $entry[$feed["meta"]["pd_address_line1"]];
+                }
+                if (!empty($entry[$feed["meta"]["pd_address_line2"]])) {
+                	$data["customer"]["payment_source"]["address_line2"] = $entry[$feed["meta"]["pd_address_line2"]];
+                }
+                if (!empty($entry[$feed["meta"]["pd_address_city"]])) {
+                	$data["customer"]["payment_source"]["address_city"] = $entry[$feed["meta"]["pd_address_city"]];
+                }
+                if (!empty($entry[$feed["meta"]["pd_address_state"]])) {
+                	$data["customer"]["payment_source"]["address_state"] = $entry[$feed["meta"]["pd_address_state"]];
+                }
+                if (!empty($entry[$feed["meta"]["pd_address_postcode"]])) {
+                	$data["customer"]["payment_source"]["address_postcode"] = $entry[$feed["meta"]["pd_address_postcode"]];
+                }
+           		if (!empty($entry[$feed["meta"]["pd_address_country"]])) {
+                	$data["customer"]["payment_source"]["address_country"] = $entry[$feed["meta"]["pd_address_country"]];
+                }
             }
             if (!empty($entry[$feed["meta"]["pd_transaction_reference"]])) {
                 $data["reference"] = $entry[$feed["meta"]["pd_transaction_reference"]];
