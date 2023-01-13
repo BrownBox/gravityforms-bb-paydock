@@ -1291,11 +1291,15 @@ EOM;
                     $error_message = __($response->error->message, 'gravityforms-bb-paydock');
                 }
                 if (property_exists($response->error, 'details')) {
-                    if (!is_object($response->error->details[0])) {
-                        $error_details = __($response->error->details[0], 'gravityforms-bb-paydock');
-                    } elseif (isset($response->error->details[0]->gateway_specific_description)) {
-                        $error_details = $response->error->details[0]->gateway_specific_description;
-                    }
+                	if (is_array($response->error->details)) {
+	                    if (!is_object($response->error->details[0])) {
+	                        $error_details = __($response->error->details[0], 'gravityforms-bb-paydock');
+	                    } elseif (isset($response->error->details[0]->gateway_specific_description)) {
+	                        $error_details = $response->error->details[0]->gateway_specific_description;
+	                    }
+                	} elseif (property_exists($response->error->details, 'messages') && is_array($response->error->details->messages)) {
+                		$error_details = implode('. ', $response->error->details->messages);
+                	}
                 }
                 if (empty($error_message)) {
                     $error_message = __('An unknown error occured. Please try again.', 'gravityforms-bb-paydock');
