@@ -1691,26 +1691,28 @@ EOM;
          *
          * @param string $email_address
          */
-        public function get_payment_sources_by_email_address( $email_address, $production ) {
+        public function get_payment_sources_by_email_address($email_address, $production) {
             $default_payment_sources = array();
 
             // Pull all subscriptions by email address
-            $subscriptions = $this->get_subscriptions_by_email( $email_address, $production );
+            $subscriptions = $this->get_subscriptions_by_email($email_address, $production);
 
-            foreach ( $subscriptions->resource->data as $subscription ) {
-                // Get customer ID
-                $customer_id = $subscription->customer->customer_id;
+			if (is_array($subscriptions)) {
+				foreach ($subscriptions as $subscription) {
+					// Get customer ID
+					$customer_id = $subscription->customer->customer_id;
 
-                // Get customer details
-                $customer = $this->get_customer( $customer_id, $production );
+					// Get customer details
+					$customer = $this->get_customer($customer_id, $production);
 
-                // Get default payment source for a customer
-                $default_payment_source = $this->_get_default_payment_source_of_a_customer( $customer );
+					// Get default payment source for a customer
+					$default_payment_source = $this->_get_default_payment_source_of_a_customer($customer);
 
-                if ( $default_payment_source ) {
-                    $default_payment_sources[] = $default_payment_source;
-                }
-            }
+					if ($default_payment_source) {
+						$default_payment_sources[] = $default_payment_source;
+					}
+				}
+			}
 
             return $default_payment_sources;
         }
