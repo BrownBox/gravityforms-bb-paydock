@@ -152,7 +152,7 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                                             "label" => "Transaction Reference",
                                             "type" => "field_select",
                                             'args' => array(
-                                                    'input_types' => array('text', 'hidden'),
+                                                    'input_types' => array('text', 'email', 'phone', 'name', 'hidden'),
                                             ),
                                     ),
                                     array(
@@ -160,7 +160,7 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                                             "label" => "Description",
                                             "type" => "field_select",
                                             'args' => array(
-                                                    'input_types' => array('text', 'hidden'),
+													'input_types' => array('text', 'email', 'phone', 'name', 'hidden'),
                                             ),
                                     ),
                             ),
