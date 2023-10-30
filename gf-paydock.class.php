@@ -996,7 +996,7 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                 	$this->log_debug(__METHOD__.'(): Token generated successfully => '.$payment_source->ref_token);
                     $GLOBALS['pd_ref_token'] = $payment_source->ref_token;
 
-                    add_action("gform_entry_created", array($this, "paydock_post_purchase_actions"), 99, 2);
+                    add_filter("gform_entry_post_save", array($this, "paydock_post_purchase_actions"), 99, 2);
                 }
 
                 // Reverse hack
@@ -1068,7 +1068,7 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                         $GLOBALS['transaction_id'] = $response->resource->data->_id;
                         $GLOBALS['gateway_transaction_id'] = $response->resource->data->external_id;
 
-                        add_action("gform_entry_created", array($this, "paydock_post_purchase_actions"), 99, 2);
+                        add_filter("gform_entry_post_save", array($this, "paydock_post_purchase_actions"), 99, 2);
 
                         $auth = array(
                                 'is_authorized' => true,
@@ -1334,20 +1334,25 @@ EOM;
         }
 
         public function paydock_post_purchase_actions($entry, $form) {
-            foreach ($form['fields'] as $field) {
-                if ($field['type'] == 'total') {
-                    $amount = $entry[$field['id']];
-                }
-            }
-            gform_update_meta($entry['id'], 'payment_status', 'Approved');
-            gform_update_meta($entry['id'], 'payment_amount', $amount);
-            gform_update_meta($entry['id'], 'gateway_transaction_id', $GLOBALS['gateway_transaction_id']);
+        	foreach ($form['fields'] as $field) {
+        		if ($field['type'] == 'total') {
+        			$amount = $entry[$field['id']];
+        		}
+        	}
 
-            GFAPI::update_entry_property($entry['id'], 'payment_amount', $amount);
-            GFAPI::update_entry_property($entry['id'], 'payment_status', 'Approved');
-            GFAPI::update_entry_property($entry['id'], 'transaction_id', $GLOBALS['transaction_id']);
+        	unset($_SESSION['PD_GATEWAY']);
 
-            unset($_SESSION['PD_GATEWAY']);
+        	$entry['is_fulfilled'] = '1';
+        	$payment = array(
+        			'payment_status' => 'Paid',
+        			'payment_date' => gmdate('Y-m-d H:i:s'),
+        			'type' => 'complete_payment',
+        			'amount' => $amount,
+        			'transaction_id' => $GLOBALS['transaction_id'],
+        	);
+        	$this->complete_payment($entry, $payment);
+
+        	return $entry;
         }
 
         public function add_merge_tags($form) {
