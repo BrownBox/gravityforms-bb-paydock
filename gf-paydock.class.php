@@ -363,9 +363,13 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
 
         private function load_gateways() {
             foreach ($this->environments as $env => $details) {
-                if (strlen($details['key']) == 40) {
+                if (strlen($details['key']) >= 40) {
                     $curl_header = array();
-                    $curl_header[] = 'x-user-token:' . $details['key'];
+					if (substr_count($details['key'], '.') == 2) { // New Access Token
+						$curl_header[] = 'x-access-token:' . $details['key'];
+					} else { // Old API key
+                    	$curl_header[] = 'x-user-token:' . $details['key'];
+					}
                     $ch = curl_init();
                     curl_setopt($ch, CURLOPT_URL, $details['uri'] . 'gateways/');
                     curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "GET");
@@ -953,16 +957,21 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                 );
                 $data_string = json_encode($customer);
 
+				$curl_header = array(
+                        'Content-Type: application/json',
+                        'Content-Length: ' . strlen($data_string)
+				);
+				if (substr_count($request_token, '.') == 2) { // New Access Token
+					$curl_header[] = 'x-access-token:' . $request_token;
+				} else { // Old API key
+					$curl_header[] = 'x-user-token:' . $request_token;
+				}
                 $ch = curl_init();
                 curl_setopt($ch, CURLOPT_URL, $api_url);
                 curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
                 curl_setopt($ch, CURLOPT_POSTFIELDS, $data_string);
                 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-                curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-                        'x-user-token:' . $request_token,
-                        'Content-Type: application/json',
-                        'Content-Length: ' . strlen($data_string)
-                ));
+                curl_setopt($ch, CURLOPT_HTTPHEADER, $curl_header);
                 $result = curl_exec($ch);
                 curl_close($ch);
 
@@ -1018,16 +1027,21 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
 
                     $data_string = json_encode($data);
 
+					$curl_header = array(
+							'Content-Type: application/json',
+							'Content-Length: ' . strlen($data_string)
+					);
+					if (substr_count($request_token, '.') == 2) { // New Access Token
+						$curl_header[] = 'x-access-token:' . $request_token;
+					} else { // Old API key
+						$curl_header[] = 'x-user-token:' . $request_token;
+					}
                     $ch = curl_init();
                     curl_setopt($ch, CURLOPT_URL, $api_url);
                     curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
                     curl_setopt($ch, CURLOPT_POSTFIELDS, $data_string);
                     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-                    curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-                            'x-user-token:' . $request_token,
-                            'Content-Type: application/json',
-                            'Content-Length: ' . strlen($data_string)
-                    ));
+                    curl_setopt($ch, CURLOPT_HTTPHEADER, $curl_header);
                     $result = curl_exec($ch);
                     curl_close($ch);
 
@@ -1094,16 +1108,21 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
 
                     $data_string = json_encode($token_data);
 
+					$curl_header = array(
+							'Content-Type: application/json',
+							'Content-Length: ' . strlen($data_string)
+					);
+					if (substr_count($request_token, '.') == 2) { // New Access Token
+						$curl_header[] = 'x-access-token:' . $request_token;
+					} else { // Old API key
+						$curl_header[] = 'x-user-token:' . $request_token;
+					}
                     $ch = curl_init();
                     curl_setopt($ch, CURLOPT_URL, $api_url);
                     curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
                     curl_setopt($ch, CURLOPT_POSTFIELDS, $data_string);
                     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-                    curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-                            'x-user-token:'.$request_token,
-                            'Content-Type: application/json',
-                            'Content-Length: '.strlen($data_string)
-                    ));
+                    curl_setopt($ch, CURLOPT_HTTPHEADER, $curl_header);
                     $result = curl_exec($ch);
                     curl_close($ch);
 
@@ -1160,16 +1179,21 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
 
                         $data_string = json_encode($data);
 
+						$curl_header = array(
+								'Content-Type: application/json',
+								'Content-Length: ' . strlen($data_string)
+						);
+						if (substr_count($request_token, '.') == 2) { // New Access Token
+							$curl_header[] = 'x-access-token:' . $request_token;
+						} else { // Old API key
+							$curl_header[] = 'x-user-token:' . $request_token;
+						}
                         $ch = curl_init();
                         curl_setopt($ch, CURLOPT_URL, $api_url);
                         curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
                         curl_setopt($ch, CURLOPT_POSTFIELDS, $data_string);
                         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-                        curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-                                'x-user-token:' . $request_token,
-                                'Content-Type: application/json',
-                                'Content-Length: ' . strlen($data_string)
-                        ));
+                        curl_setopt($ch, CURLOPT_HTTPHEADER, $curl_header);
                         $result = curl_exec($ch);
                         curl_close($ch);
 
@@ -1211,16 +1235,21 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
                         		 'subscription_id' => $response->resource->data->_id,
                         		 );
                         		 $data_string = json_encode($data);
+								$curl_header = array(
+										'Content-Type: application/json',
+										'Content-Length: ' . strlen($data_string)
+								);
+								if (substr_count($request_token, '.') == 2) { // New Access Token
+									$curl_header[] = 'x-access-token:' . $request_token;
+								} else { // Old API key
+									$curl_header[] = 'x-user-token:' . $request_token;
+								}
                         		 $ch = curl_init();
                         		 curl_setopt($ch, CURLOPT_URL, $api_url);
                         		 curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
                         		 curl_setopt($ch, CURLOPT_POSTFIELDS, $data_string);
                         		 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-                        		 curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-                        		 'x-user-token:'.$request_token,
-                        		 'Content-Type: application/json',
-                        		 'Content-Length: '.strlen($data_string),
-                        		 ));
+                        		 curl_setopt($ch, CURLOPT_HTTPHEADER, $curl_header);
                         		 $result = curl_exec($ch);
                         		 curl_close($ch);*/
                         	} else { // We only processed a future-dated subscription, return result
@@ -1399,14 +1428,19 @@ EOM;
                 $feed_uri = $this->sandbox_endpoint;
             }
 
+			$curl_header = array(
+					'Content-Type: application/json',
+			);
+			if (substr_count($request_token, '.') == 2) { // New Access Token
+				$curl_header[] = 'x-access-token:' . $request_token;
+			} else { // Old API key
+				$curl_header[] = 'x-user-token:' . $request_token;
+			}
             $ch = curl_init();
             curl_setopt($ch, CURLOPT_URL, $feed_uri.'subscriptions/'.$sub_id);
             curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "GET");
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-                    'x-user-token:' . $request_token,
-                    'Content-Type: application/json',
-            ));
+            curl_setopt($ch, CURLOPT_HTTPHEADER, $curl_header);
             $result = curl_exec($ch);
             curl_close($ch);
 
@@ -1423,14 +1457,19 @@ EOM;
                 $feed_uri = $this->sandbox_endpoint;
             }
 
+			$curl_header = array(
+					'Content-Type: application/json',
+			);
+			if (substr_count($request_token, '.') == 2) { // New Access Token
+				$curl_header[] = 'x-access-token:' . $request_token;
+			} else { // Old API key
+				$curl_header[] = 'x-user-token:' . $request_token;
+			}
             $ch = curl_init();
             curl_setopt($ch, CURLOPT_URL, $feed_uri.'subscriptions/?customer_id='.$customer_id);
             curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "GET");
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-                    'x-user-token:' . $request_token,
-                    'Content-Type: application/json',
-            ));
+            curl_setopt($ch, CURLOPT_HTTPHEADER, $curl_header);
             $result = curl_exec($ch);
             curl_close($ch);
 
@@ -1442,6 +1481,7 @@ EOM;
         	$customer_subscriptions = array();
         	foreach ($customers->resource->data as $customer) {
         		$subscriptions = $this->get_subscriptions_by_customer($customer->_id, $production);
+				var_dump($customers, $subscriptions);
         		if ($subscriptions->status != 200) {
         			return false;
         		}
@@ -1464,16 +1504,21 @@ EOM;
                 $feed_uri = $this->sandbox_endpoint;
             }
 
+			$curl_header = array(
+					'Content-Type: application/json',
+					'Content-Length: ' . strlen($data_string)
+			);
+			if (substr_count($request_token, '.') == 2) { // New Access Token
+				$curl_header[] = 'x-access-token:' . $request_token;
+			} else { // Old API key
+				$curl_header[] = 'x-user-token:' . $request_token;
+			}
             $ch = curl_init();
             curl_setopt($ch, CURLOPT_URL, $feed_uri.'subscriptions/'.$sub_id);
             curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
             curl_setopt($ch, CURLOPT_POSTFIELDS, $data_string);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-                    'x-user-token:' . $request_token,
-                    'Content-Type: application/json',
-                    'Content-Length: ' . strlen($data_string)
-            ));
+            curl_setopt($ch, CURLOPT_HTTPHEADER, $curl_header);
             $result = curl_exec($ch);
             curl_close($ch);
 
@@ -1490,14 +1535,19 @@ EOM;
                 $feed_uri = $this->sandbox_endpoint;
             }
 
+			$curl_header = array(
+					'Content-Type: application/json',
+			);
+			if (substr_count($request_token, '.') == 2) { // New Access Token
+				$curl_header[] = 'x-access-token:' . $request_token;
+			} else { // Old API key
+				$curl_header[] = 'x-user-token:' . $request_token;
+			}
             $ch = curl_init();
             curl_setopt($ch, CURLOPT_URL, $feed_uri.'subscriptions/'.$sub_id);
             curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "DELETE");
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-                    'x-user-token:' . $request_token,
-                    'Content-Type: application/json',
-            ));
+            curl_setopt($ch, CURLOPT_HTTPHEADER, $curl_header);
             $result = curl_exec($ch);
             curl_close($ch);
 
@@ -1514,14 +1564,19 @@ EOM;
                 $feed_uri = $this->sandbox_endpoint;
             }
 
+			$curl_header = array(
+					'Content-Type: application/json',
+			);
+			if (substr_count($request_token, '.') == 2) { // New Access Token
+				$curl_header[] = 'x-access-token:' . $request_token;
+			} else { // Old API key
+				$curl_header[] = 'x-user-token:' . $request_token;
+			}
             $ch = curl_init();
             curl_setopt($ch, CURLOPT_URL, $feed_uri.'charges/'.$charge_id);
             curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "GET");
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-                    'x-user-token:' . $request_token,
-                    'Content-Type: application/json',
-            ));
+            curl_setopt($ch, CURLOPT_HTTPHEADER, $curl_header);
             $result = curl_exec($ch);
             curl_close($ch);
 
@@ -1538,14 +1593,19 @@ EOM;
                 $feed_uri = $this->sandbox_endpoint;
             }
 
+			$curl_header = array(
+					'Content-Type: application/json',
+			);
+			if (substr_count($request_token, '.') == 2) { // New Access Token
+				$curl_header[] = 'x-access-token:' . $request_token;
+			} else { // Old API key
+				$curl_header[] = 'x-user-token:' . $request_token;
+			}
             $ch = curl_init();
             curl_setopt($ch, CURLOPT_URL, $feed_uri.'charges/?search='.urlencode($email));
             curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "GET");
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-                    'x-user-token:' . $request_token,
-                    'Content-Type: application/json',
-            ));
+            curl_setopt($ch, CURLOPT_HTTPHEADER, $curl_header);
             $result = curl_exec($ch);
             curl_close($ch);
 
@@ -1562,14 +1622,19 @@ EOM;
                 $feed_uri = $this->sandbox_endpoint;
             }
 
+			$curl_header = array(
+					'Content-Type: application/json',
+			);
+			if (substr_count($request_token, '.') == 2) { // New Access Token
+				$curl_header[] = 'x-access-token:' . $request_token;
+			} else { // Old API key
+				$curl_header[] = 'x-user-token:' . $request_token;
+			}
             $ch = curl_init();
             curl_setopt($ch, CURLOPT_URL, $feed_uri.'customers');
             curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "GET");
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-                    'x-user-token:' . $request_token,
-                    'Content-Type: application/json',
-            ));
+            curl_setopt($ch, CURLOPT_HTTPHEADER, $curl_header);
             $result = curl_exec($ch);
             curl_close($ch);
 
@@ -1586,14 +1651,19 @@ EOM;
                 $feed_uri = $this->sandbox_endpoint;
             }
 
+			$curl_header = array(
+					'Content-Type: application/json',
+			);
+			if (substr_count($request_token, '.') == 2) { // New Access Token
+				$curl_header[] = 'x-access-token:' . $request_token;
+			} else { // Old API key
+				$curl_header[] = 'x-user-token:' . $request_token;
+			}
             $ch = curl_init();
             curl_setopt($ch, CURLOPT_URL, $feed_uri.'customers/?email='.urlencode($email));
             curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "GET");
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-                    'x-user-token:' . $request_token,
-                    'Content-Type: application/json',
-            ));
+            curl_setopt($ch, CURLOPT_HTTPHEADER, $curl_header);
             $result = curl_exec($ch);
             curl_close($ch);
 
@@ -1610,14 +1680,19 @@ EOM;
                 $feed_uri = $this->sandbox_endpoint;
             }
 
+			$curl_header = array(
+					'Content-Type: application/json',
+			);
+			if (substr_count($request_token, '.') == 2) { // New Access Token
+				$curl_header[] = 'x-access-token:' . $request_token;
+			} else { // Old API key
+				$curl_header[] = 'x-user-token:' . $request_token;
+			}
             $ch = curl_init();
             curl_setopt($ch, CURLOPT_URL, $feed_uri.'customers/'.$customer_id);
             curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "GET");
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-                    'x-user-token:' . $request_token,
-                    'Content-Type: application/json',
-            ));
+            curl_setopt($ch, CURLOPT_HTTPHEADER, $curl_header);
             $result = curl_exec($ch);
             curl_close($ch);
 
@@ -1660,16 +1735,21 @@ EOM;
                 $feed_uri = $this->sandbox_endpoint;
             }
 
+			$curl_header = array(
+					'Content-Type: application/json',
+                    'Content-Length: ' . strlen($data_string)
+			);
+			if (substr_count($request_token, '.') == 2) { // New Access Token
+				$curl_header[] = 'x-access-token:' . $request_token;
+			} else { // Old API key
+				$curl_header[] = 'x-user-token:' . $request_token;
+			}
             $ch = curl_init();
             curl_setopt($ch, CURLOPT_URL, $feed_uri.'customers/'.$customer_id);
             curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
             curl_setopt($ch, CURLOPT_POSTFIELDS, $data_string);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-                    'x-user-token:' . $request_token,
-                    'Content-Type: application/json',
-                    'Content-Length: ' . strlen($data_string)
-            ));
+            curl_setopt($ch, CURLOPT_HTTPHEADER, $curl_header);
             $result = curl_exec($ch);
             curl_close($ch);
 
