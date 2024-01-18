@@ -1481,7 +1481,6 @@ EOM;
         	$customer_subscriptions = array();
         	foreach ($customers->resource->data as $customer) {
         		$subscriptions = $this->get_subscriptions_by_customer($customer->_id, $production);
-				var_dump($customers, $subscriptions);
         		if ($subscriptions->status != 200) {
         			return false;
         		}
