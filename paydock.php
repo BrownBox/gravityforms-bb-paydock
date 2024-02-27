@@ -8,6 +8,7 @@ Author: Spark Web Solutions
 Author URI: https://sparkweb.com.au/
 Text Domain: gravityforms-bb-paydock
 Domain Path: /languages
+Requires Plugins: gravityforms
 
 ------------------------------------------------------------------------
 This program is free software; you can redistribute it and/or modify
