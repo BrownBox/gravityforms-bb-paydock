@@ -1755,6 +1755,70 @@ EOM;
             return json_decode($result);
         }
 
+		public function update_card_expiry($customer, $payment_source, $expire_month, $expire_year, $ccv, $production = false) {
+			$pd_options = $this->get_plugin_settings();
+            if ($production) {
+				$request_token = $pd_options['pd_production_api_key'];
+                $feed_uri = $this->production_endpoint;
+            } else {
+				$request_token = $pd_options['pd_sandbox_api_key'];
+                $feed_uri = $this->sandbox_endpoint;
+            }
+
+			$data = array(
+				'expire_month' => $expire_month,
+				'expire_year' => $expire_year,
+			);
+			$data_string = json_encode($data);
+			$curl_header = array(
+					'Content-Type: application/json',
+                    'Content-Length: ' . strlen($data_string)
+			);
+			if (substr_count($request_token, '.') == 2) { // New Access Token
+				$curl_header[] = 'x-access-token:' . $request_token;
+			} else { // Old API key
+				$curl_header[] = 'x-user-token:' . $request_token;
+			}
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $feed_uri.'vault-tokens/'.$payment_source->vault_token);
+            curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $data_string);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, $curl_header);
+            $result = curl_exec($ch);
+            curl_close($ch);
+
+            $result = json_decode($result);
+			if ($result->status >= 400) {
+				return $result;
+			}
+
+			$data = array(
+				'vault_token' => $payment_source->vault_token,
+				'card_ccv' => $ccv,
+			);
+			$data_string = json_encode($data);
+			$curl_header = array(
+					'Content-Type: application/json',
+                    'Content-Length: ' . strlen($data_string)
+			);
+			if (substr_count($request_token, '.') == 2) { // New Access Token
+				$curl_header[] = 'x-access-token:' . $request_token;
+			} else { // Old API key
+				$curl_header[] = 'x-user-token:' . $request_token;
+			}
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $feed_uri.'customers/'.$customer->customer_id.'/payment_sources/'.$payment_source->_id);
+            curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $data_string);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, $curl_header);
+            $result = curl_exec($ch);
+            curl_close($ch);
+
+            return json_decode($result);
+		}
+
         public function charge_belongs_to_email($charge_id, $email, $production) {
             $charge = $this->get_charge($charge_id, $production);
             return $charge->resource->data->customer->email == $email;
