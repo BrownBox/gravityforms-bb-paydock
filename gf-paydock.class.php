@@ -1309,10 +1309,10 @@ EOM;
             return '<div class="validation_error">Error processing transaction: '.$GLOBALS['pd_error'].'.</div>';
         }
 
-        private function get_paydock_error_message($response) {
+        public function get_paydock_error_message($response) {
             $error_message = $error_details = '';
             if ($response == null || $response == '') {
-            	$error_message = __('An unknown error occured - no response was received from the gateway. Your payment may have been processed, but the gateway did not send a confirmation. We strongly recommend that you do not try again, but instead please contact us so we can check whether the payment went through successfully.', 'gravityforms-bb-paydock');
+				$error_message = __('An unknown error occured - no response was received from the gateway. Your payment may have been processed, but the gateway did not send a confirmation. We strongly recommend that you do not try again, but instead please contact us so we can check whether the payment went through successfully.', 'gravityforms-bb-paydock');
             } else {
                 if (is_string($response)) {
                     $error_message = __($response, 'gravityforms-bb-paydock');
@@ -1320,15 +1320,15 @@ EOM;
                     $error_message = __($response->error->message, 'gravityforms-bb-paydock');
                 }
                 if (property_exists($response->error, 'details')) {
-                	if (is_array($response->error->details)) {
-	                    if (!is_object($response->error->details[0])) {
-	                        $error_details = __($response->error->details[0], 'gravityforms-bb-paydock');
-	                    } elseif (isset($response->error->details[0]->gateway_specific_description)) {
-	                        $error_details = $response->error->details[0]->gateway_specific_description;
-	                    }
-                	} elseif (property_exists($response->error->details, 'messages') && is_array($response->error->details->messages)) {
-                		$error_details = implode('. ', $response->error->details->messages);
-                	}
+					if (is_array($response->error->details)) {
+						if (!is_object($response->error->details[0])) {
+							$error_details = __($response->error->details[0], 'gravityforms-bb-paydock');
+						} elseif (isset($response->error->details[0]->gateway_specific_description)) {
+							$error_details = $response->error->details[0]->gateway_specific_description;
+						}
+					} elseif (property_exists($response->error->details, 'messages') && is_array($response->error->details->messages)) {
+						$error_details = implode('. ', $response->error->details->messages);
+					}
                 }
                 if (empty($error_message)) {
                     $error_message = __('An unknown error occured. Please try again.', 'gravityforms-bb-paydock');
@@ -1349,7 +1349,7 @@ EOM;
          */
         public function clean_amount($amount, $currency_code = '') {
         	$amount = preg_replace("/\|(.*)/", '', $amount); // replace everything from the pipe symbol forward
-        	return GFCommon::to_number($amount, $currency_code);
+			return GFCommon::to_number($amount, $currency_code);
         }
 
         public function generate_random_number($value) {
@@ -1363,25 +1363,25 @@ EOM;
         }
 
         public function paydock_post_purchase_actions($entry, $form) {
-        	foreach ($form['fields'] as $field) {
-        		if ($field['type'] == 'total') {
-        			$amount = $entry[$field['id']];
-        		}
-        	}
+			foreach ($form['fields'] as $field) {
+				if ($field['type'] == 'total') {
+					$amount = $entry[$field['id']];
+				}
+			}
 
-        	unset($_SESSION['PD_GATEWAY']);
+			unset($_SESSION['PD_GATEWAY']);
 
-        	$entry['is_fulfilled'] = '1';
-        	$payment = array(
-        			'payment_status' => 'Paid',
-        			'payment_date' => gmdate('Y-m-d H:i:s'),
-        			'type' => 'complete_payment',
-        			'amount' => $amount,
-        			'transaction_id' => $GLOBALS['transaction_id'],
-        	);
-        	$this->complete_payment($entry, $payment);
+			$entry['is_fulfilled'] = '1';
+			$payment = array(
+					'payment_status' => 'Paid',
+					'payment_date' => gmdate('Y-m-d H:i:s'),
+					'type' => 'complete_payment',
+					'amount' => $amount,
+					'transaction_id' => $GLOBALS['transaction_id'],
+			);
+			$this->complete_payment($entry, $payment);
 
-        	return $entry;
+			return $entry;
         }
 
         public function add_merge_tags($form) {
@@ -1477,19 +1477,19 @@ EOM;
         }
 
         public function get_subscriptions_by_email($email, $production = false) {
-        	$customers = $this->get_customers_by_email($email, $production);
-        	$customer_subscriptions = array();
-        	foreach ($customers->resource->data as $customer) {
-        		$subscriptions = $this->get_subscriptions_by_customer($customer->_id, $production);
-        		if ($subscriptions->status != 200) {
-        			return false;
-        		}
-        		foreach ($subscriptions->resource->data as $subscription) {
-        			$customer_subscriptions[] = $subscription;
-        		}
-        	}
+			$customers = $this->get_customers_by_email($email, $production);
+			$customer_subscriptions = array();
+			foreach ($customers->resource->data as $customer) {
+				$subscriptions = $this->get_subscriptions_by_customer($customer->_id, $production);
+				if ($subscriptions->status != 200) {
+					return false;
+				}
+				foreach ($subscriptions->resource->data as $subscription) {
+					$customer_subscriptions[] = $subscription;
+				}
+			}
 
-        	return $customer_subscriptions;
+			return $customer_subscriptions;
         }
 
         public function update_subscription($sub_id, array $data, $production = false) {
@@ -1714,10 +1714,10 @@ EOM;
                 foreach ($env as $production) {
                     $customers = $this->get_customers_by_email($old_email, $production);
                     foreach ($customers->resource->data as $customer) {
-                    	if ($customer->email == $old_email) {
-	                        $data = array('email' => $new_email);
-	                        $this->update_customer($customer->_id, $data, $production);
-                    	}
+						if ($customer->email == $old_email) {
+							$data = array('email' => $new_email);
+							$this->update_customer($customer->_id, $data, $production);
+						}
                     }
                 }
             }
