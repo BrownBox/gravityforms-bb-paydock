@@ -806,7 +806,7 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
             $feed_gateway_key = $feed['meta']['pd_select_gateway'];
             $_SESSION['PD_GATEWAY'] = $feed_gateway_key;
 
-            if (array_key_exists($feed_gateway_key, $this->gateways['production'])) {
+            if (!empty($this->gateways['production']) && array_key_exists($feed_gateway_key, $this->gateways['production'])) {
                 $request_token = $pd_options['pd_production_api_key'];
                 $public_key = $pd_options['pd_production_public_key'];
                 $feed_uri = $this->production_endpoint;
