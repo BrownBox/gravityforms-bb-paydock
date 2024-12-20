@@ -36,14 +36,18 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
             add_action('bbconnect_merge_users', array($this, 'update_email_address'), 10, 2);
 
             $pd_options = $this->get_plugin_settings();
-            $this->environments['sandbox'] = array(
-                    'uri' => $this->sandbox_endpoint,
-                    'key' => $pd_options['pd_sandbox_api_key'],
-            );
-            $this->environments['production'] = array(
-                    'uri' => $this->production_endpoint,
-                    'key' => $pd_options['pd_production_api_key'],
-            );
+			if (!empty($pd_options['pd_sandbox_api_key'])) {
+				$this->environments['sandbox'] = array(
+						'uri' => $this->sandbox_endpoint,
+						'key' => $pd_options['pd_sandbox_api_key'],
+				);
+			}
+			if (!empty($pd_options['pd_production_api_key'])) {
+				$this->environments['production'] = array(
+						'uri' => $this->production_endpoint,
+						'key' => $pd_options['pd_production_api_key'],
+				);
+			}
 
             parent::init();
         }
