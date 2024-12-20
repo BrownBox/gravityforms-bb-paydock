@@ -674,6 +674,31 @@ if (method_exists('GFForms', 'include_payment_addon_framework')) {
         	return $field;
         }
 
+		/**
+		 * Add supported notification events.
+		 *
+		 * @since  3.6.4
+		 * @access public
+		 *
+		 * @used-by GFFeedAddOn::notification_events()
+		 * @uses    GFFeedAddOn::has_feed()
+		 *
+		 * @param array $form The form currently being processed.
+		 *
+		 * @return array|false The supported notification events. False if feed cannot be found within $form.
+		 */
+		public function supported_notification_events($form) {
+			// If this form does not have a PayDock feed, return false.
+			if (!$this->has_feed($form['id'])) {
+				return false;
+			}
+
+			// Return PayDock notification events.
+			return array(
+				'complete_payment'          => esc_html__('Payment Completed', 'gravityforms-bb-paydock'),
+			);
+		}
+
         public function get_submission_data($feed, $form, $entry) {
             $form_data = array();
 
