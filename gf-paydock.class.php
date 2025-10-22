@@ -1912,5 +1912,87 @@ EOM;
 
             return false;
         }
+
+        /**
+         * Retrieve PD notifications matching query
+         *
+         * @since 3.6.5
+         *
+         * @param string $query
+         * @param boolean $production
+         * @return array
+         */
+        public function get_notifications($query = '', $production = false) {
+            $pd_options = $this->get_plugin_settings();
+            if ($production) {
+                $request_token = $pd_options['pd_production_api_key'];
+                $feed_uri = $this->production_endpoint;
+            } else {
+                $request_token = $pd_options['pd_sandbox_api_key'];
+                $feed_uri = $this->sandbox_endpoint;
+            }
+
+			$curl_header = array(
+                'Content-Type: application/json',
+			);
+			if (substr_count($request_token, '.') == 2) { // New Access Token
+				$curl_header[] = 'x-access-token:' . $request_token;
+			} else { // Old API key
+				$curl_header[] = 'x-user-token:' . $request_token;
+			}
+
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $feed_uri.'notifications/logs'.$query);
+            curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "GET");
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, $curl_header);
+            $result = curl_exec($ch);
+            curl_close($ch);
+
+            return json_decode($result);
+        }
+
+        /**
+         * Retrigger PD notification
+         *
+         * @since 3.6.5
+         *
+         * @param string $notification_id
+         * @param boolean $production
+         * @param array $data
+         * @return mixed
+         */
+        public function send_notification($notification_id, $production = false, $data = array()) {
+            $pd_options = $this->get_plugin_settings();
+            if ($production) {
+                $request_token = $pd_options['pd_production_api_key'];
+                $feed_uri = $this->production_endpoint;
+            } else {
+                $request_token = $pd_options['pd_sandbox_api_key'];
+                $feed_uri = $this->sandbox_endpoint;
+            }
+
+			$curl_header = array(
+                'Content-Type: application/json',
+			);
+			if (substr_count($request_token, '.') == 2) { // New Access Token
+				$curl_header[] = 'x-access-token:' . $request_token;
+			} else { // Old API key
+				$curl_header[] = 'x-user-token:' . $request_token;
+			}
+
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $feed_uri.'notifications/logs/'.$notification_id);
+            curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "PUT");
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, $curl_header);
+            if (!empty($data)) {
+                curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+            }
+            $result = curl_exec($ch);
+            curl_close($ch);
+
+            return json_decode($result);
+        }
     }
 }
